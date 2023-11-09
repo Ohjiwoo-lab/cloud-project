@@ -30,6 +30,17 @@ class Instance:
 
         print(f"Successfully started instance {id}")
 
+    # 특정 인스턴스 중지
+    def stop(self, id):
+        for instance in self.ec2.instances.all():
+            if instance.id == id:
+                response = instance.stop()
+                print(response)
+                instance.wait_until_stopped()
+                break
+
+        print(f"Successfully stop instance {id}")
+
 
 if __name__ == '__main__':
     while True:
@@ -64,7 +75,9 @@ if __name__ == '__main__':
             pass
 
         elif operation=='5':
-            pass
+            id = input("Enter instance id: ")
+            if id is not None:
+                instance.stop(id)
 
         elif operation=='6':
             pass
