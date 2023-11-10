@@ -71,7 +71,7 @@ class Instance:
         for image in self.ec2.images.filter(Filters=[{'Name': 'name', 'Values': ['aws-htcondor-slave']}]):
             print(f"[ImageId] {image.id}, [Name] {image.name}, [Owner] {image.owner_id}")
 
-class Region:
+class Client:
     def __init__(self, client):
         self.client = client
 
@@ -94,6 +94,12 @@ class Region:
             print(f"[region] {region['RegionName']}, ", end="")
             print(f"[endpoint] {region['Endpoint']}")
 
+    # 인스턴스 재부팅하기
+    def reboot(self, id):
+        print(f"Rebooting .... {id}")
+        self.client.reboot_instances(InstanceIds=[id])
+        print(f"Successfully rebooted instance {id}")
+
 
 if __name__ == '__main__':
     while True:
@@ -114,8 +120,8 @@ if __name__ == '__main__':
         ec2 = boto3.resource('ec2')
         instance = Instance(ec2)
 
-        client = boto3.client('ec2')
-        region = Region(client)
+        ec2_client = boto3.client('ec2')
+        client = Client(ec2_client)
 
         # 인스턴스 목록 출력
         if operation=='1':
@@ -123,7 +129,7 @@ if __name__ == '__main__':
 
         # 가용영역 출력
         elif operation=='2':
-            region.get_availability_zone()
+            client.get_availability_zone()
 
         # 특정 인스턴스 시작
         elif operation=='3':
@@ -133,7 +139,7 @@ if __name__ == '__main__':
 
         # 리전 출력
         elif operation=='4':
-            region.get_region()
+            client.get_region()
 
         # 특정 인스턴스 종료
         elif operation=='5':
@@ -149,7 +155,9 @@ if __name__ == '__main__':
 
         # 인스턴스 재부팅
         elif operation=='7':
-            pass
+            id = input("Enter instance id: ")
+            if id is not None:
+                client.reboot(id)
 
         # AMI 이미지 목록 출력
         elif operation=='8':
