@@ -64,6 +64,13 @@ class Instance:
         instance = self.ec2.create_instances(**params, MinCount=1, MaxCount=1)[0]
         print(f"Successfully started EC2 instance {instance.id} based on AMI {ami_id}")
 
+    # AMI 이미지 출력
+    def ami_images(self):
+        print("Listing images....")
+
+        for image in self.ec2.images.filter(Filters=[{'Name': 'name', 'Values': ['aws-htcondor-slave']}]):
+            print(f"[ImageId] {image.id}, [Name] {image.name}, [Owner] {image.owner_id}")
+
 class Region:
     def __init__(self, client):
         self.client = client
@@ -146,7 +153,7 @@ if __name__ == '__main__':
 
         # AMI 이미지 목록 출력
         elif operation=='8':
-            pass
+            instance.ami_images()
 
         # 프로그램 종료
         elif operation=='99':
