@@ -47,6 +47,23 @@ class Instance:
         else:
             print("Incorrect Id. Please try again.")
 
+    # 인스턴스 생성
+    def create(self, ami_id):
+        securityGroup = []
+        for vm in self.ec2.security_groups.all():
+            if vm.group_name == "launch-wizard-3":
+                securityGroup.append(vm.id)
+                break
+
+        params = {
+            "ImageId": ami_id,
+            "InstanceType": "t2.micro",
+            "KeyName": "slave-key",
+            "SecurityGroupIds": securityGroup
+        }
+        instance = self.ec2.create_instances(**params, MinCount=1, MaxCount=1)[0]
+        print(f"Successfully started EC2 instance {instance.id} based on AMI {ami_id}")
+
 class Region:
     def __init__(self, client):
         self.client = client
@@ -119,7 +136,9 @@ if __name__ == '__main__':
 
         # 인스턴스 생성
         elif operation=='6':
-            pass
+            ami_id = input("Enter ami id: ")
+            if ami_id is not None:
+                instance.create(ami_id)
 
         # 인스턴스 재부팅
         elif operation=='7':
