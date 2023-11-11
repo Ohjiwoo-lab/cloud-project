@@ -1,21 +1,27 @@
 import boto3
 
 class Instance:
-    def __init__(self, ec2):
+    def __init__(self, ec2, client):
         self.ec2 = ec2
+        self.client = client
 
     # 인스턴스 정보 출력
     def display(self):
-        if self.ec2 is None:
-            print("No instance")
-        else:
-            for instance in self.ec2.instances.all():
-                print(f"[id] {instance.id}, ", end="")
-                print(f"[AMI] {instance.image_id}, ", end="")
-                print(f"[type] {instance.instance_type}, ", end="")
-                print(f"[key] {instance.key_name}, ", end="")
-                print(f"[public ip] {instance.public_ip_address}, ", end="")
-                print(f"[state] {instance.state['Name']}")
+        try:
+            response = self.client.describe_instances()
+            if len(response['Reservations']) == 0:
+                print('No instance')
+            else:
+                for instances in response['Reservations']:
+                    for instance in instances['Instances']:
+                        print(f"[id] {instance['InstanceId']}, ", end="")
+                        print(f"[AMI] {instance['ImageId']}, ", end="")
+                        print(f"[type] {instance['InstanceType']}, ", end="")
+                        print(f"[state] {instance['State']['Name']}, ", end="")
+                        print(f"[monitoring state] {instance['Monitoring']['State']}")
+
+        except Exception as e:
+            print('get instance error', e)
 
     # 특정 인스턴스 시작
     def start(self, id):
@@ -118,9 +124,9 @@ if __name__ == '__main__':
         operation = input("Enter an integer: ")
 
         ec2 = boto3.resource('ec2')
-        instance = Instance(ec2)
-
         ec2_client = boto3.client('ec2')
+
+        instance = Instance(ec2, ec2_client)
         client = Client(ec2_client)
 
         # 인스턴스 목록 출력
