@@ -1,18 +1,20 @@
 import boto3
+from botocore.exceptions import ClientError
+
 
 class Instance:
     def __init__(self, ec2, client):
         self.ec2 = ec2
         self.client = client
+        self.response = self.client.describe_instances()
 
     # 인스턴스 정보 출력
     def display(self):
         try:
-            response = self.client.describe_instances()
-            if len(response['Reservations']) == 0:
+            if len(self.response['Reservations']) == 0:
                 print('No instance')
             else:
-                for instances in response['Reservations']:
+                for instances in self.response['Reservations']:
                     for instance in instances['Instances']:
                         print(f"[id] {instance['InstanceId']}, ", end="")
                         print(f"[AMI] {instance['ImageId']}, ", end="")
@@ -24,19 +26,31 @@ class Instance:
             print('get instance error', e)
 
     # 특정 인스턴스 시작
-    def start(self, id):
-        flag = False
-        for instance in self.ec2.instances.all():
-            if instance.id == id:
-                print(f"Starting .... {id}")
-                instance.start()
-                flag = True
-                # instance.wait_until_running()
-                break
-        if flag:
-            print(f"Successfully started instance {id}")
+    def start(self, ids):
+        # id가 공백으로 주어진 경우
+        if len(ids) == 0:
+            print("Please enter correct id")
         else:
-            print("Incorrect Id. Please try again.")
+            print(f"Starting ....", end="")
+            for id in ids:
+                print(f" {id}", end="")
+            print()
+
+            try:
+                self.ec2.instances.filter(InstanceIds=ids).start()
+                print(f"Successfully started instance", end="")
+                for id in ids:
+                    print(f" {id}", end="")
+                print()
+
+            # 예외 처리
+            except ClientError as err:
+                print(f"Cannot start instances", end="")
+                for id in ids:
+                    print(f" {id}", end=" ")
+                print()
+                print(err.response["Error"]["Code"], end=" ")
+                print(err.response["Error"]["Message"])
 
     # 특정 인스턴스 중지
     def stop(self, id):
@@ -139,7 +153,7 @@ if __name__ == '__main__':
 
         # 특정 인스턴스 시작
         elif operation=='3':
-            id = input("Enter instance id: ")
+            id = list(input("Enter instance id: ").split())
             if id is not None:
                 instance.start(id)
 
