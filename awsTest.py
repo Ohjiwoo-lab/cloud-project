@@ -80,8 +80,16 @@ class Instance:
             "KeyName": "slave-key",
             "SecurityGroupIds": securityGroup
         }
-        instance = self.ec2.create_instances(**params, MinCount=1, MaxCount=1)[0]
-        print(f"Successfully started EC2 instance {instance.id} based on AMI {ami_id}")
+
+        try:
+            instance = self.ec2.create_instances(**params, MinCount=1, MaxCount=1)[0]
+            print(f"Successfully started EC2 instance {instance.id} based on AMI {ami_id}")
+
+        # 예외 처리
+        except ClientError as err:
+            print(f"Cannot create instance based on AMI {ami_id}")
+            print(err.response["Error"]["Code"], end=" ")
+            print(err.response["Error"]["Message"])
 
     # AMI 이미지 출력
     def ami_images(self):
@@ -173,7 +181,9 @@ if __name__ == '__main__':
         # 인스턴스 생성
         elif operation=='6':
             ami_id = input("Enter ami id: ")
-            if ami_id is not None:
+            if len(ami_id) == 0:
+                print("Please enter correct ami id")
+            else:
                 instance.create(ami_id)
 
         # 인스턴스 재부팅
