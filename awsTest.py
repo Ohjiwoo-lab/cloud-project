@@ -27,45 +27,44 @@ class Instance:
 
     # 특정 인스턴스 시작
     def start(self, ids):
-        # id가 공백으로 주어진 경우
-        if len(ids) == 0:
-            print("Please enter correct id")
-        else:
-            print(f"Starting ....", end="")
+        print(f"Starting ....", end="")
+        for id in ids:
+            print(f" {id}", end="")
+        print()
+
+        try:
+            self.ec2.instances.filter(InstanceIds=ids).start()
+            print(f"Successfully started instance", end="")
             for id in ids:
                 print(f" {id}", end="")
             print()
 
-            try:
-                self.ec2.instances.filter(InstanceIds=ids).start()
-                print(f"Successfully started instance", end="")
-                for id in ids:
-                    print(f" {id}", end="")
-                print()
-
-            # 예외 처리
-            except ClientError as err:
-                print(f"Cannot start instances", end="")
-                for id in ids:
-                    print(f" {id}", end=" ")
-                print()
-                print(err.response["Error"]["Code"], end=" ")
-                print(err.response["Error"]["Message"])
+        # 예외 처리
+        except ClientError as err:
+            print(f"Cannot start instances", end="")
+            for id in ids:
+                print(f" {id}", end=" ")
+            print()
+            print(err.response["Error"]["Code"], end=" ")
+            print(err.response["Error"]["Message"])
 
     # 특정 인스턴스 중지
-    def stop(self, id):
-        flag = False
-        for instance in self.ec2.instances.all():
-            if instance.id == id:
-                instance.stop()
-                flag = True
-                # instance.wait_until_stopped()
-                break
+    def stop(self, ids):
+        try:
+            self.ec2.instances.filter(InstanceIds=ids).stop()
+            print(f"Successfully stop instance", end="")
+            for id in ids:
+                print(f" {id}", end="")
+            print()
 
-        if flag:
-            print(f"Successfully stop instance {id}")
-        else:
-            print("Incorrect Id. Please try again.")
+        # 예외 처리
+        except ClientError as err:
+            print(f"Cannot stop instances", end="")
+            for id in ids:
+                print(f" {id}", end=" ")
+            print()
+            print(err.response["Error"]["Code"], end=" ")
+            print(err.response["Error"]["Message"])
 
     # 인스턴스 생성
     def create(self, ami_id):
@@ -153,9 +152,11 @@ if __name__ == '__main__':
 
         # 특정 인스턴스 시작
         elif operation=='3':
-            id = list(input("Enter instance id: ").split())
-            if id is not None:
-                instance.start(id)
+            ids = list(input("Enter instance id: ").split())
+            if len(ids) == 0:
+                print("Please enter correct id")
+            else:
+                instance.start(ids)
 
         # 리전 출력
         elif operation=='4':
@@ -163,9 +164,11 @@ if __name__ == '__main__':
 
         # 특정 인스턴스 종료
         elif operation=='5':
-            id = input("Enter instance id: ")
-            if id is not None:
-                instance.stop(id)
+            ids = list(input("Enter instance id: ").split())
+            if len(ids) == 0:
+                print("Please enter correct id")
+            else:
+                instance.stop(ids)
 
         # 인스턴스 생성
         elif operation=='6':
