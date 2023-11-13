@@ -146,8 +146,14 @@ class Instance:
     # 인스턴스 재부팅하기
     def reboot(self, id):
         print(f"Rebooting .... {id}")
-        self.client.reboot_instances(InstanceIds=[id])
-        print(f"Successfully rebooted instance {id}")
+        try:
+            self.client.reboot_instances(InstanceIds=[id])
+            print(f"Successfully rebooted instance {id}")
+
+        except ClientError as err:
+            print(f"Cannot reboot instance")
+            print(err.response["Error"]["Code"], end=" ")
+            print(err.response["Error"]["Message"])
 
 
 if __name__ == '__main__':
