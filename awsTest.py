@@ -108,28 +108,40 @@ class Instance:
             print("Cannot display ami images any more")
             print(f"Exception: {err}")
 
-class Client:
-    def __init__(self, client):
-        self.client = client
-
     # 가용 영역 출력하기
     def get_availability_zone(self):
-        response = self.client.describe_availability_zones()
-        cnt=0
-        for zone in response['AvailabilityZones']:
-            print(f"[id] {zone['ZoneId']}, ", end="")
-            print(f"[region] {zone['RegionName']}, ", end="")
-            print(f"[zone] {zone['ZoneName']}")
-            cnt += 1
+        try:
+            response = self.client.describe_availability_zones()
+            cnt=0
+            for zone in response['AvailabilityZones']:
+                print(f"[id] {zone['ZoneId']}, ", end="")
+                print(f"[region] {zone['RegionName']}, ", end="")
+                print(f"[zone] {zone['ZoneName']}")
+                cnt += 1
 
-        print(f"You have access to {cnt} Availability Zones.")
+            print(f"You have access to {cnt} Availability Zones.")
+
+        except ClientError as err:
+            print(f"Cannot get available zones")
+            print(err.response["Error"]["Code"], end=" ")
+            print(err.response["Error"]["Message"])
 
     # 리전 출력하기
     def get_region(self):
-        response = self.client.describe_regions()
-        for region in response['Regions']:
-            print(f"[region] {region['RegionName']}, ", end="")
-            print(f"[endpoint] {region['Endpoint']}")
+        try:
+            response = self.client.describe_regions()
+            cnt = 0
+            for region in response['Regions']:
+                print(f"[region] {region['RegionName']}, ", end="")
+                print(f"[endpoint] {region['Endpoint']}")
+                cnt +=1
+
+            print(f"You have access to {cnt} Regions.")
+
+        except ClientError as err:
+            print(f"Cannot get available regions")
+            print(err.response["Error"]["Code"], end=" ")
+            print(err.response["Error"]["Message"])
 
     # 인스턴스 재부팅하기
     def reboot(self, id):
@@ -155,10 +167,9 @@ if __name__ == '__main__':
         operation = input("Enter an integer: ")
 
         ec2 = boto3.resource('ec2')
-        ec2_client = boto3.client('ec2')
+        client = boto3.client('ec2')
 
-        instance = Instance(ec2, ec2_client)
-        client = Client(ec2_client)
+        instance = Instance(ec2, client)
 
         # 인스턴스 목록 출력
         if operation=='1':
@@ -166,7 +177,7 @@ if __name__ == '__main__':
 
         # 가용영역 출력
         elif operation=='2':
-            client.get_availability_zone()
+            instance.get_availability_zone()
 
         # 특정 인스턴스 시작
         elif operation=='3':
@@ -178,7 +189,7 @@ if __name__ == '__main__':
 
         # 리전 출력
         elif operation=='4':
-            client.get_region()
+            instance.get_region()
 
         # 특정 인스턴스 종료
         elif operation=='5':
@@ -200,7 +211,7 @@ if __name__ == '__main__':
         elif operation=='7':
             id = input("Enter instance id: ")
             if id is not None:
-                client.reboot(id)
+                instance.reboot(id)
 
         # AMI 이미지 목록 출력
         elif operation=='8':
