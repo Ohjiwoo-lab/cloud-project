@@ -22,8 +22,9 @@ class Instance:
                         print(f"[state] {instance['State']['Name']}, ", end="")
                         print(f"[monitoring state] {instance['Monitoring']['State']}")
 
-        except Exception as e:
-            print('get instance error', e)
+        except Exception as err:
+            print("Cannot display instances any more")
+            print(f"Exception: {err}")
 
     # 특정 인스턴스 시작
     def start(self, ids):
@@ -94,9 +95,18 @@ class Instance:
     # AMI 이미지 출력
     def ami_images(self):
         print("Listing images....")
+        try:
+            flag=True
+            for image in self.ec2.images.filter(Filters=[{'Name': 'name', 'Values': ['aws-htcondor-slave']}]):
+                print(f"[ImageId] {image.id}, [Name] {image.name}, [Owner] {image.owner_id}")
+                flag=False
 
-        for image in self.ec2.images.filter(Filters=[{'Name': 'name', 'Values': ['aws-htcondor-slave']}]):
-            print(f"[ImageId] {image.id}, [Name] {image.name}, [Owner] {image.owner_id}")
+            if flag:
+                print('No images')
+
+        except Exception as err:
+            print("Cannot display ami images any more")
+            print(f"Exception: {err}")
 
 class Client:
     def __init__(self, client):
