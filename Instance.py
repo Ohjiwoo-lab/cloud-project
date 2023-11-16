@@ -143,11 +143,18 @@ class Instance:
             print(err.response["Error"]["Message"])
 
     # 인스턴스 재부팅하기
-    def reboot(self, id):
-        print(f"Rebooting .... {id}")
+    def reboot(self, ids):
+        print(f"Rebooting ....", end="")
+        for id in ids:
+            print(f" {id}", end=" ")
+        print()
+
         try:
-            self.client.reboot_instances(InstanceIds=[id])
-            print(f"Successfully rebooted instance {id}")
+            self.client.reboot_instances(InstanceIds=[ids])
+            print(f"Successfully rebooted instance", end="")
+            for id in ids:
+                print(f" {id}", end=" ")
+            print()
 
         except ClientError as err:
             print(f"Cannot reboot instance")
