@@ -15,6 +15,7 @@ if __name__ == '__main__':
         print("  5. stop instance                6. create instance        ")
         print("  7. reboot instance              8. list images            ")
         print("  9. terminate instance           10. list alarm            ")
+        print("  11. create alarm                                          ")
         print("                                 99. quit                   ")
         print("------------------------------------------------------------")
 
@@ -22,10 +23,11 @@ if __name__ == '__main__':
 
         ec2 = boto3.resource('ec2')
         client = boto3.client('ec2')
-        sns = boto3.client('sns')
+        sns_client = boto3.client('sns')
+        sns_resource = boto3.resource('sns')
 
         instance = Instance(ec2, client)
-        alarm = Alarm(sns)
+        alarm = Alarm(sns_client, sns_resource)
 
         # 인스턴스 목록 출력
         if operation=='1':
@@ -86,6 +88,10 @@ if __name__ == '__main__':
         # 설정된 알람 확인
         elif operation=='10':
             alarm.list()
+
+        # 알람 생성
+        elif operation=='11':
+            alarm.create_alarm()
 
         # 프로그램 종료
         elif operation=='99':
