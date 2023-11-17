@@ -44,6 +44,7 @@ if __name__ == '__main__':
                 print("Please enter correct id")
             else:
                 instance.start(ids)
+                alarm.send("start_instance")
 
         # 리전 출력
         elif operation=='4':
@@ -56,6 +57,7 @@ if __name__ == '__main__':
                 print("Please enter correct id")
             else:
                 instance.stop(ids)
+                alarm.send("stop_instance")
 
         # 인스턴스 생성
         elif operation=='6':
@@ -64,6 +66,7 @@ if __name__ == '__main__':
                 print("Please enter correct ami id")
             else:
                 instance.create(ami_id)
+                alarm.send("create_instance")
 
         # 인스턴스 재부팅
         elif operation=='7':
@@ -84,6 +87,7 @@ if __name__ == '__main__':
                 print("Please enter correct id")
             else:
                 instance.terminate(ids)
+                alarm.send("terminate_instance")
 
         # 설정된 알람 확인
         elif operation=='10':

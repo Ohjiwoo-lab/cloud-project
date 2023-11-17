@@ -73,3 +73,27 @@ class Alarm:
             print("Cannot get alarm list")
             print(err.response["Error"]["Code"], end=" ")
             print(err.response["Error"]["Message"])
+
+    # 특정 작업 시 알람 전송
+    def send(self, action):
+        try:
+            topics = self.client.list_topics()
+            for topic in topics['Topics']:
+                if topic['TopicArn'].split(':')[-1] == action:
+                    try:
+                        self.client.publish(
+                            TopicArn=topic['TopicArn'],
+                            Message=f"당신의 AWS 계정으로 {action} 작업이 이루어졌습니다. 본인의 활동이 맞는지 확인해보세요."
+                        )
+                        break
+
+                    except ClientError as err:
+                        print("Cannot sent the email")
+                        print(err.response["Error"]["Code"], end=" ")
+                        print(err.response["Error"]["Message"])
+                        return
+
+        except ClientError as err:
+            print("Cannot get alarm list")
+            print(err.response["Error"]["Code"], end=" ")
+            print(err.response["Error"]["Message"])
