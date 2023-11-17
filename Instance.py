@@ -144,7 +144,7 @@ class Instance:
 
     # 인스턴스 재부팅하기
     def reboot(self, ids):
-        print(f"Rebooting ....", end="")
+        print("Rebooting ....", end="")
         for id in ids:
             print(f" {id}", end=" ")
         print()
@@ -158,5 +158,28 @@ class Instance:
 
         except ClientError as err:
             print(f"Cannot reboot instance")
+            print(err.response["Error"]["Code"], end=" ")
+            print(err.response["Error"]["Message"])
+
+    # 인스턴스 종료(삭제)하기
+    def terminate(self, ids):
+        print("Terminating ...", end="")
+        for id in ids:
+            print(f" {id}", end=" ")
+        print()
+
+        try:
+            self.ec2.instances.filter(InstanceIds=ids).terminate()
+            print(f"Successfully terminate instance", end="")
+            for id in ids:
+                print(f" {id}", end="")
+            print()
+
+        # 예외 처리
+        except ClientError as err:
+            print(f"Cannot terminate instances", end="")
+            for id in ids:
+                print(f" {id}", end=" ")
+            print()
             print(err.response["Error"]["Code"], end=" ")
             print(err.response["Error"]["Message"])

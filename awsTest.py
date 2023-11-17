@@ -1,5 +1,6 @@
 import boto3
 from Instance import Instance
+from Alarm import Alarm
 
 
 if __name__ == '__main__':
@@ -13,6 +14,7 @@ if __name__ == '__main__':
         print("  3. start instance               4. available regions      ")
         print("  5. stop instance                6. create instance        ")
         print("  7. reboot instance              8. list images            ")
+        print("  9. terminate instance                                     ")
         print("                                 99. quit                   ")
         print("------------------------------------------------------------")
 
@@ -61,13 +63,23 @@ if __name__ == '__main__':
 
         # 인스턴스 재부팅
         elif operation=='7':
-            id = input("Enter instance id: ")
-            if id is not None:
-                instance.reboot(id)
+            ids = list(input("Enter instance id: ").split())
+            if len(ids) == 0:
+                print("Please enter correct id")
+            else:
+                instance.reboot(ids)
 
         # AMI 이미지 목록 출력
         elif operation=='8':
             instance.ami_images()
+
+        # 인스턴스 종료
+        elif operation=='9':
+            ids = list(input("Enter instance id: ").split())
+            if len(ids) == 0:
+                print("Please enter correct id")
+            else:
+                instance.terminate(ids)
 
         # 프로그램 종료
         elif operation=='99':
