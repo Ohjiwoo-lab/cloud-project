@@ -14,7 +14,7 @@ if __name__ == '__main__':
         print("  3. start instance               4. available regions      ")
         print("  5. stop instance                6. create instance        ")
         print("  7. reboot instance              8. list images            ")
-        print("  9. terminate instance                                     ")
+        print("  9. terminate instance           10. list alarm            ")
         print("                                 99. quit                   ")
         print("------------------------------------------------------------")
 
@@ -22,8 +22,10 @@ if __name__ == '__main__':
 
         ec2 = boto3.resource('ec2')
         client = boto3.client('ec2')
+        sns = boto3.client('sns')
 
         instance = Instance(ec2, client)
+        alarm = Alarm(sns)
 
         # 인스턴스 목록 출력
         if operation=='1':
@@ -80,6 +82,10 @@ if __name__ == '__main__':
                 print("Please enter correct id")
             else:
                 instance.terminate(ids)
+
+        # 설정된 알람 확인
+        elif operation=='10':
+            alarm.list()
 
         # 프로그램 종료
         elif operation=='99':
