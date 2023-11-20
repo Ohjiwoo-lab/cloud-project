@@ -104,6 +104,10 @@ class Alarm:
         topics, endpoints = self.list()
         num = len(topics)
 
+        if num==0:
+            print("There are no alarms to modify.")
+            return
+
         try:
             operation = int(input("\nWhich alarm do you want to delete? "))
 
@@ -133,6 +137,10 @@ class Alarm:
     def modify(self):
         topics, endpoints = self.list()
         num = len(topics)
+
+        if num==0:
+            print("There are no alarms to modify.")
+            return
 
         try:
             operation = int(input("\nWhich alarm do you want to modify? "))
