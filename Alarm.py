@@ -13,13 +13,17 @@ class Alarm:
             arn_list, email_list = [], []
             cnt = 0
             for i, topic in enumerate(topics['Topics']):
+                tmp_email = []
                 print(f"{i+1}. [name] {topic['TopicArn'].split(':')[-1]}", end=" ")
 
                 endpoints=self.client.list_subscriptions_by_topic(TopicArn=topic['TopicArn'])
+                print(f"[email] ", end="")
                 for endpoint in endpoints['Subscriptions']:
-                    print(f"[email] {endpoint['Endpoint']} ")
-                    email_list.append(endpoint['SubscriptionArn'])
+                    print(f"{endpoint['Endpoint']} ", end="")
+                    tmp_email.append(endpoint['SubscriptionArn'])
+                print()
 
+                email_list.append(tmp_email)
                 arn_list.append(topic['TopicArn'])
                 cnt+=1
 
@@ -94,3 +98,33 @@ class Alarm:
             print("Cannot send the email")
             print(err.response["Error"]["Code"], end=" ")
             print(err.response["Error"]["Message"])
+
+    # 알람 삭제
+    def delete(self):
+        topics, endpoints = self.list()
+        num = len(topics)
+
+        try:
+            operation = int(input("\nWhich alarm do you want to delete? "))
+
+            try:
+                if operation > num or operation <= 0:
+                    print("You entered an invalid integer...")
+                    return
+
+                # 토픽 삭제
+                self.client.delete_topic(TopicArn=topics[operation - 1])
+
+                # 해당 토픽을 구독하는 이메일 삭제
+                for endpoint in endpoints[operation-1]:
+                    self.client.unsubscribe(SubscriptionArn=endpoint)
+
+                print("Successfully delete alarm")
+
+            except ClientError as err:
+                print("Cannot delete alarm")
+                print(err.response["Error"]["Code"], end=" ")
+                print(err.response["Error"]["Message"])
+
+        except ValueError:
+            print("You entered an invalid integer...")
