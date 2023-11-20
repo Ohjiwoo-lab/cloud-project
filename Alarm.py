@@ -20,7 +20,7 @@ class Alarm:
                 print(f"[email] ", end="")
                 for endpoint in endpoints['Subscriptions']:
                     print(f"{endpoint['Endpoint']} ", end="")
-                    tmp_email.append(endpoint['SubscriptionArn'])
+                    tmp_email.append([endpoint['SubscriptionArn'],endpoint['Endpoint']])
                 print()
 
                 email_list.append(tmp_email)
@@ -123,6 +123,68 @@ class Alarm:
 
             except ClientError as err:
                 print("Cannot delete alarm")
+                print(err.response["Error"]["Code"], end=" ")
+                print(err.response["Error"]["Message"])
+
+        except ValueError:
+            print("You entered an invalid integer...")
+
+    # 알람 이메일 수정
+    def modify(self):
+        topics, endpoints = self.list()
+        num = len(topics)
+
+        try:
+            operation = int(input("\nWhich alarm do you want to modify? "))
+
+            try:
+                if operation > num or operation <= 0:
+                    print("You entered an invalid integer...")
+                    return
+
+                for endpoint in endpoints[operation-1]:
+                    if endpoint[0]=='PendingConfirmation':
+                        print("Your email hasn't been approved yet.")
+                        return
+
+                # 어떤 작업에 대해 이메일을 수정할 지
+                print("                                                 ")
+                print("         What task do you want to do?            ")
+                print("                                                 ")
+                print("    1. delete email           2. add email       ")
+                print("                                                 ")
+
+                task = input("Enter an integer: ")
+                # 이메일 삭제하는 경우
+                if task=='1':
+                    flag=True
+                    email = input("Which email would you like to delete? ")
+                    for endpoint in endpoints[operation - 1]:
+                        if endpoint[1] == email:
+                            flag = False
+                            self.client.unsubscribe(SubscriptionArn=endpoint[0])
+                            print(f"Successfully delete email {email}")
+
+                    if flag:
+                        print("You entered wrong email...")
+
+                # 이메일 추가하는 경우
+                elif task=='2':
+                    email = input("Enter your email: ")
+                    self.client.subscribe(
+                        TopicArn=topics[operation-1],
+                        Protocol='email',
+                        Endpoint=email,
+                    )
+                    print(f"Successfully add email {email} to alarm {topics[operation-1].split(':')[-1]}")
+
+                # 잘못된 번호를 입력한 경우
+                else:
+                    print("You entered an invalid integer...")
+                    return
+
+            except ClientError as err:
+                print("Cannot modify alarm")
                 print(err.response["Error"]["Code"], end=" ")
                 print(err.response["Error"]["Message"])
 

@@ -15,7 +15,8 @@ if __name__ == '__main__':
         print("  5. stop instance                6. create instance        ")
         print("  7. reboot instance              8. list images            ")
         print("  9. terminate instance           10. list alarm            ")
-        print("  11. create alarm                12. delete alarm          ")
+        print("  11. create alarm from ami       12. delete alarm          ")
+        print("  13. modify email for alarm                                ")
         print("                                 99. quit                   ")
         print("------------------------------------------------------------")
 
@@ -100,6 +101,10 @@ if __name__ == '__main__':
         # 알람 삭제
         elif operation=='12':
             alarm.delete()
+
+        # 알림받을 이메일 수정
+        elif operation=='13':
+            alarm.modify()
 
         # 프로그램 종료
         elif operation=='99':
