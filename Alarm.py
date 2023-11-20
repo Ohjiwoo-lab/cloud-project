@@ -10,12 +10,21 @@ class Alarm:
     def list(self):
         try:
             topics = self.client.list_topics()
+            arn_list, email_list = [], []
             cnt = 0
-            for topic in topics['Topics']:
-                print(topic['TopicArn'].split(':')[-1])
+            for i, topic in enumerate(topics['Topics']):
+                print(f"{i+1}. [name] {topic['TopicArn'].split(':')[-1]}", end=" ")
+
+                endpoints=self.client.list_subscriptions_by_topic(TopicArn=topic['TopicArn'])
+                for endpoint in endpoints['Subscriptions']:
+                    print(f"[email] {endpoint['Endpoint']} ")
+                    email_list.append(endpoint['SubscriptionArn'])
+
+                arn_list.append(topic['TopicArn'])
                 cnt+=1
 
             print(f"You have {cnt} alarms.")
+            return arn_list, email_list
 
         except ClientError as err:
             print("Cannot get alarm list")
@@ -39,9 +48,9 @@ class Alarm:
         elif operation=='2':
             name = 'stop_instance'
         elif operation=='3':
-            name = 'create instance'
+            name = 'create_instance'
         elif operation=='4':
-            name = 'terminate instance'
+            name = 'terminate_instance'
         else:
             print("You entered an invalid integer.")
             return
@@ -55,22 +64,17 @@ class Alarm:
                     return
 
             # 알람 생성 및 구독 활성화 (구독은 이메일로)
-            try:
-                email = input("Enter your email: ")
-                response = self.client.create_topic(Name=name)
-                self.client.subscribe(
-                    TopicArn=response['TopicArn'],
-                    Protocol='email',
-                    Endpoint=email,
-                )
-
-            except ClientError as err:
-                print("Cannot create alarm")
-                print(err.response["Error"]["Code"], end=" ")
-                print(err.response["Error"]["Message"])
+            email = input("Enter your email: ")
+            response = self.client.create_topic(Name=name)
+            self.client.subscribe(
+                TopicArn=response['TopicArn'],
+                Protocol='email',
+                Endpoint=email,
+            )
+            print("Successfully create alarm")
 
         except ClientError as err:
-            print("Cannot get alarm list")
+            print("Cannot create alarm")
             print(err.response["Error"]["Code"], end=" ")
             print(err.response["Error"]["Message"])
 
@@ -80,20 +84,13 @@ class Alarm:
             topics = self.client.list_topics()
             for topic in topics['Topics']:
                 if topic['TopicArn'].split(':')[-1] == action:
-                    try:
-                        self.client.publish(
-                            TopicArn=topic['TopicArn'],
-                            Message=f"당신의 AWS 계정으로 {action} 작업이 이루어졌습니다. 본인의 활동이 맞는지 확인해보세요."
-                        )
-                        break
-
-                    except ClientError as err:
-                        print("Cannot sent the email")
-                        print(err.response["Error"]["Code"], end=" ")
-                        print(err.response["Error"]["Message"])
-                        return
+                    self.client.publish(
+                        TopicArn=topic['TopicArn'],
+                        Message=f"당신의 AWS 계정으로 {action} 작업이 이루어졌습니다. 본인의 활동이 맞는지 확인해보세요."
+                    )
+                    break
 
         except ClientError as err:
-            print("Cannot get alarm list")
+            print("Cannot send the email")
             print(err.response["Error"]["Code"], end=" ")
             print(err.response["Error"]["Message"])
