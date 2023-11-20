@@ -117,7 +117,7 @@ class Alarm:
 
                 # 해당 토픽을 구독하는 이메일 삭제
                 for endpoint in endpoints[operation-1]:
-                    self.client.unsubscribe(SubscriptionArn=endpoint)
+                    self.client.unsubscribe(SubscriptionArn=endpoint[0])
 
                 print("Successfully delete alarm")
 
