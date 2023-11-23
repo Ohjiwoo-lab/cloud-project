@@ -2,9 +2,8 @@ from botocore.exceptions import ClientError
 
 
 class Alarm:
-    def __init__(self, client, resource):
+    def __init__(self, client):
         self.client = client
-        self.resource = resource
 
     # 알람을 전송할 주제 나열
     def list(self):

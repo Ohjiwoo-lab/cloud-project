@@ -1,34 +1,37 @@
 import boto3
 from Instance import Instance
 from Alarm import Alarm
+from Trail import Trail
 
 
 if __name__ == '__main__':
     while True:
-        print("                                                            ")
-        print("                                                            ")
-        print("------------------------------------------------------------")
-        print("           Amazon AWS Control Panel using SDK               ")
-        print("------------------------------------------------------------")
-        print("  1. list instance                2. available zones        ")
-        print("  3. start instance               4. available regions      ")
-        print("  5. stop instance                6. create instance        ")
-        print("  7. reboot instance              8. list images            ")
-        print("  9. terminate instance           10. list alarm            ")
-        print("  11. create alarm from ami       12. delete alarm          ")
-        print("  13. modify email for alarm                                ")
-        print("                                 99. quit                   ")
-        print("------------------------------------------------------------")
+        print("                                                             ")
+        print("                                                             ")
+        print("-------------------------------------------------------------")
+        print("           Amazon AWS Control Panel using SDK                ")
+        print("-------------------------------------------------------------")
+        print("  1. list instance               2. available zones          ")
+        print("  3. start instance              4. available regions        ")
+        print("  5. stop instance               6. create instance from ami ")
+        print("  7. reboot instance             8. list images              ")
+        print("  9. terminate instance          10. list alarm              ")
+        print("  11. create alarm               12. delete alarm            ")
+        print("  13. modify email for alarm                                 ")
+        print("                                 99. quit                    ")
+        print("-------------------------------------------------------------")
 
         operation = input("Enter an integer: ")
 
+        # EC2
         ec2 = boto3.resource('ec2')
         client = boto3.client('ec2')
-        sns_client = boto3.client('sns')
-        sns_resource = boto3.resource('sns')
+
+        # SNS를 이용한 알림 기능
+        sns = boto3.client('sns')
 
         instance = Instance(ec2, client)
-        alarm = Alarm(sns_client, sns_resource)
+        alarm = Alarm(sns)
 
         # 인스턴스 목록 출력
         if operation=='1':
