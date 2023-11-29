@@ -1,7 +1,7 @@
 import boto3
 from Instance import Instance
 from Alarm import Alarm
-from Trail import Trail
+from Condor import Condor
 
 
 if __name__ == '__main__':
@@ -17,7 +17,7 @@ if __name__ == '__main__':
         print("  7. reboot instance             8. list images              ")
         print("  9. terminate instance          10. list alarm              ")
         print("  11. create alarm               12. delete alarm            ")
-        print("  13. modify email for alarm                                 ")
+        print("  13. modify email for alarm     14. condor status           ")
         print("                                 99. quit                    ")
         print("-------------------------------------------------------------")
 
@@ -30,8 +30,12 @@ if __name__ == '__main__':
         # SNS를 이용한 알림 기능
         sns = boto3.client('sns')
 
+        # SSM (System Manager)
+        ssm = boto3.client('ssm')
+
         instance = Instance(ec2, client)
         alarm = Alarm(sns)
+        condor = Condor(ssm, client)
 
         # 인스턴스 목록 출력
         if operation=='1':
@@ -108,6 +112,10 @@ if __name__ == '__main__':
         # 알림받을 이메일 수정
         elif operation=='13':
             alarm.modify()
+
+        # condor status
+        elif operation=='14':
+            condor.status()
 
         # 프로그램 종료
         elif operation=='99':
