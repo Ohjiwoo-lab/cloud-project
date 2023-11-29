@@ -2,6 +2,7 @@ import boto3
 from Instance import Instance
 from Alarm import Alarm
 from Condor import Condor
+from Trail import Trail
 
 
 if __name__ == '__main__':
@@ -15,9 +16,13 @@ if __name__ == '__main__':
     # SSM (System Manager)
     ssm = boto3.client('ssm')
 
+    # CloudTrail 로그 기록
+    trail = boto3.client('cloudtrail')
+
     instance = Instance(ec2, client)
     alarm = Alarm(sns)
     condor = Condor(ssm, client)
+    event = Trail(trail)
 
     # 프로그램 실행할 때 마스터는 실행 상태로 유지하기
     response = client.describe_instances(
@@ -47,6 +52,7 @@ if __name__ == '__main__':
         print("  9. terminate instance          10. list alarm              ")
         print("  11. create alarm               12. delete alarm            ")
         print("  13. modify email for alarm     14. condor status           ")
+        print("  15. event history                                          ")
         print("                                 99. quit                    ")
         print("-------------------------------------------------------------")
 
@@ -131,6 +137,10 @@ if __name__ == '__main__':
         # condor status
         elif operation=='14':
             condor.status()
+
+        # 그동안 수행한 작업 확인하기
+        elif operation=='15':
+            event.select_mode()
 
         # 프로그램 종료
         elif operation=='99':
