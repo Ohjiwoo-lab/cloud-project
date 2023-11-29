@@ -33,11 +33,27 @@ class Instance:
         print()
 
         try:
-            self.ec2.instances.filter(InstanceIds=ids).start()
-            print(f"Successfully started instance", end="")
-            for id in ids:
-                print(f" {id}", end="")
-            print()
+            response = self.client.describe_instances(
+                Filters=[
+                    {
+                        'Name': 'instance-id',
+                        'Values': ids
+                    }
+                ]
+            )
+
+            # 응답이 없는 경우, 잘못된 인스턴스 아이디를 입력한 것
+            if len(response['Reservations']) == 0:
+                print("Please enter correct id")
+            else:
+                for instances in response['Reservations']:
+                    for instance in instances['Instances']:
+                        # 이미 인스턴스가 시작 중인 상태인 경우
+                        if instance['State']['Name'] == 'running':
+                            print(f"Instance {instance['InstanceId']} is already running.")
+                        else:
+                            self.ec2.instances.filter(InstanceIds=[instance['InstanceId']]).start()
+                            print(f"Successfully started instance {instance['InstanceId']}")
 
         # 예외 처리
         except ClientError as err:
@@ -51,11 +67,27 @@ class Instance:
     # 특정 인스턴스 중지
     def stop(self, ids):
         try:
-            self.ec2.instances.filter(InstanceIds=ids).stop()
-            print(f"Successfully stop instance", end="")
-            for id in ids:
-                print(f" {id}", end="")
-            print()
+            response = self.client.describe_instances(
+                Filters=[
+                    {
+                        'Name': 'instance-id',
+                        'Values': ids
+                    }
+                ]
+            )
+
+            # 응답이 없는 경우, 잘못된 인스턴스 아이디를 입력한 것
+            if len(response['Reservations']) == 0:
+                print("Please enter correct id")
+            else:
+                for instances in response['Reservations']:
+                    for instance in instances['Instances']:
+                        # 이미 인스턴스가 중지 중인 상태인 경우
+                        if instance['State']['Name'] == 'stopped':
+                            print(f"Instance {instance['InstanceId']} is already stopped.")
+                        else:
+                            self.ec2.instances.filter(InstanceIds=[instance['InstanceId']]).stop()
+                            print(f"Successfully stop instance {instance['InstanceId']}")
 
         # 예외 처리
         except ClientError as err:
@@ -150,7 +182,7 @@ class Instance:
         print()
 
         try:
-            self.client.reboot_instances(InstanceIds=[ids])
+            self.client.reboot_instances(InstanceIds=ids)
             print(f"Successfully rebooted instance", end="")
             for id in ids:
                 print(f" {id}", end=" ")
