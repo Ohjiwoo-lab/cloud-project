@@ -206,11 +206,32 @@ class Instance:
         print()
 
         try:
-            self.ec2.instances.filter(InstanceIds=ids).terminate()
-            print(f"Successfully terminate instance", end="")
-            for id in ids:
-                print(f" {id}", end="")
-            print()
+            response = self.client.describe_instances(
+                Filters=[
+                    {
+                        'Name': 'instance-id',
+                        'Values': ids
+                    }
+                ]
+            )
+
+            # 응답이 없는 경우, 잘못된 인스턴스 아이디를 입력한 것
+            if len(response['Reservations']) == 0:
+                print("Please enter correct id")
+            else:
+                for instances in response['Reservations']:
+                    for instance in instances['Instances']:
+                        # 마스터 노드인 경우 종료 불가
+                        if instance['KeyName'] == 'master-key':
+                            print("The master node cannot be terminated.")
+                            return
+                        # 이미 인스턴스가 종료 중인 상태인 경우
+                        elif instance['State']['Name'] == 'terminated':
+                            print(f"Instance {instance['InstanceId']} is already terminated.")
+                            return
+                        else:
+                            self.ec2.instances.filter(InstanceIds=[instance['InstanceId']]).terminate()
+                            print(f"Successfully terminate instance {instance['InstanceId']}")
 
         # 예외 처리
         except ClientError as err:
