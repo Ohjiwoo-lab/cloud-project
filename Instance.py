@@ -5,15 +5,15 @@ class Instance:
     def __init__(self, ec2, client):
         self.ec2 = ec2
         self.client = client
-        self.response = self.client.describe_instances()
 
     # 인스턴스 정보 출력
     def display(self):
         try:
-            if len(self.response['Reservations']) == 0:
+            response = self.client.describe_instances()
+            if len(response['Reservations']) == 0:
                 print('No instance')
             else:
-                for instances in self.response['Reservations']:
+                for instances in response['Reservations']:
                     for instance in instances['Instances']:
                         print(f"[id] {instance['InstanceId']}, ", end="")
                         print(f"[AMI] {instance['ImageId']}, ", end="")
@@ -82,9 +82,14 @@ class Instance:
             else:
                 for instances in response['Reservations']:
                     for instance in instances['Instances']:
+                        # 마스터 노드인 경우 중지 불가
+                        if instance['KeyName'] == 'master-key':
+                            print("The master node cannot be stopped.")
+                            return
                         # 이미 인스턴스가 중지 중인 상태인 경우
-                        if instance['State']['Name'] == 'stopped':
+                        elif instance['State']['Name'] == 'stopped':
                             print(f"Instance {instance['InstanceId']} is already stopped.")
+                            return
                         else:
                             self.ec2.instances.filter(InstanceIds=[instance['InstanceId']]).stop()
                             print(f"Successfully stop instance {instance['InstanceId']}")

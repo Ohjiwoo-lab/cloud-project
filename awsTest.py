@@ -5,6 +5,35 @@ from Condor import Condor
 
 
 if __name__ == '__main__':
+    # EC2
+    ec2 = boto3.resource('ec2')
+    client = boto3.client('ec2')
+
+    # SNS를 이용한 알림 기능
+    sns = boto3.client('sns')
+
+    # SSM (System Manager)
+    ssm = boto3.client('ssm')
+
+    instance = Instance(ec2, client)
+    alarm = Alarm(sns)
+    condor = Condor(ssm, client)
+
+    # 프로그램 실행할 때 마스터는 실행 상태로 유지하기
+    response = client.describe_instances(
+        Filters=[
+            {
+                'Name': 'tag:Name',
+                'Values': ['master']
+            }
+        ]
+    )
+    for master in response['Reservations']:
+        for node in master['Instances']:
+            if node['State']['Name'] != 'running':
+                print("The master node is stopped. Starting a master node.")
+                ec2.instances.filter(InstanceIds=[node['InstanceId']]).start()
+
     while True:
         print("                                                             ")
         print("                                                             ")
@@ -22,20 +51,6 @@ if __name__ == '__main__':
         print("-------------------------------------------------------------")
 
         operation = input("Enter an integer: ")
-
-        # EC2
-        ec2 = boto3.resource('ec2')
-        client = boto3.client('ec2')
-
-        # SNS를 이용한 알림 기능
-        sns = boto3.client('sns')
-
-        # SSM (System Manager)
-        ssm = boto3.client('ssm')
-
-        instance = Instance(ec2, client)
-        alarm = Alarm(sns)
-        condor = Condor(ssm, client)
 
         # 인스턴스 목록 출력
         if operation=='1':
