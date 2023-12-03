@@ -135,7 +135,7 @@ class Alarm:
                     print("Successfully delete alarm")
 
                 else:
-                    print(f"The notification cannot be deleted because there is an unconfirmed email {email}.")
+                    print(f"The notification cannot be deleted because there is an unconfirmed email '{email}'.")
 
             except ClientError as err:
                 print("Cannot delete alarm")
@@ -164,7 +164,7 @@ class Alarm:
 
                 for endpoint in endpoints[operation-1]:
                     if endpoint[0]=='PendingConfirmation':
-                        print("Your email hasn't been approved yet.")
+                        print(f"Your email '{endpoint[1]}' hasn't been approved yet.")
                         return
 
                 # 어떤 작업에 대해 이메일을 수정할 지
@@ -191,12 +191,20 @@ class Alarm:
                 # 이메일 추가하는 경우
                 elif task=='2':
                     email = input("Enter your email: ")
-                    self.client.subscribe(
-                        TopicArn=topics[operation-1],
-                        Protocol='email',
-                        Endpoint=email,
-                    )
-                    print(f"Successfully add email {email} to alarm {topics[operation-1].split(':')[-1]}")
+                    flag = True
+                    for endpoint in endpoints[operation - 1]:
+                        if endpoint[1] == email:
+                            flag = False
+                            print("This email already exists.")
+                            break
+
+                    if flag:
+                        self.client.subscribe(
+                            TopicArn=topics[operation-1],
+                            Protocol='email',
+                            Endpoint=email,
+                        )
+                        print(f"Successfully add email {email} to alarm {topics[operation-1].split(':')[-1]}")
 
                 # 잘못된 번호를 입력한 경우
                 else:
