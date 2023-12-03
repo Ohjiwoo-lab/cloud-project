@@ -117,14 +117,25 @@ class Alarm:
                     print("You entered an invalid integer...")
                     return
 
-                # 토픽 삭제
-                self.client.delete_topic(TopicArn=topics[operation - 1])
-
-                # 해당 토픽을 구독하는 이메일 삭제
+                # 확인되지 않은 이메일이 있는 지 확인
+                flag, email = True, ''
                 for endpoint in endpoints[operation-1]:
-                    self.client.unsubscribe(SubscriptionArn=endpoint[0])
+                    if endpoint[0]=='PendingConfirmation':
+                        flag=False
+                        email=endpoint[1]
+                        break
 
-                print("Successfully delete alarm")
+                if flag:
+                    # 토픽 삭제
+                    self.client.delete_topic(TopicArn=topics[operation - 1])
+                    # 해당 토픽을 구독하는 이메일 삭제
+                    for endpoint in endpoints[operation - 1]:
+                        self.client.unsubscribe(SubscriptionArn=endpoint[0])
+
+                    print("Successfully delete alarm")
+
+                else:
+                    print(f"The notification cannot be deleted because there is an unconfirmed email {email}.")
 
             except ClientError as err:
                 print("Cannot delete alarm")
