@@ -49,9 +49,9 @@ if __name__ == '__main__':
         print("  3. start instance              4. available regions        ")
         print("  5. stop instance               6. create instance from ami ")
         print("  7. reboot instance             8. list images              ")
-        print("  9. terminate instance          10. list alarm              ")
-        print("  11. create alarm               12. delete alarm            ")
-        print("  13. modify email for alarm     14. condor status           ")
+        print("  9. terminate instance          10. condor status           ")
+        print("  11. list alarm                 12. create alarm            ")
+        print("  13. delete alarm               14. modify email for alarm  ")
         print("  15. event history                                          ")
         print("                                 99. quit                    ")
         print("-------------------------------------------------------------")
@@ -118,25 +118,25 @@ if __name__ == '__main__':
                 instance.terminate(ids)
                 alarm.send("terminate_instance")
 
-        # 설정된 알람 확인
+        # condor status
         elif operation=='10':
+            condor.status()
+
+        # 설정된 알람 확인
+        elif operation=='11':
             alarm.list()
 
         # 알람 생성
-        elif operation=='11':
+        elif operation=='12':
             alarm.create_alarm()
 
         # 알람 삭제
-        elif operation=='12':
+        elif operation=='13':
             alarm.delete()
 
         # 알림받을 이메일 수정
-        elif operation=='13':
-            alarm.modify()
-
-        # condor status
         elif operation=='14':
-            condor.status()
+            alarm.modify()
 
         # 그동안 수행한 작업 확인하기
         elif operation=='15':
