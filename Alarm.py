@@ -20,6 +20,8 @@ class Alarm:
                 for endpoint in endpoints['Subscriptions']:
                     print(f"{endpoint['Endpoint']} ", end="")
                     tmp_email.append([endpoint['SubscriptionArn'],endpoint['Endpoint']])
+                    if endpoint['SubscriptionArn']=='PendingConfirmation':
+                        print("(Pending Confirmation) ", end="")
                 print()
 
                 email_list.append(tmp_email)
