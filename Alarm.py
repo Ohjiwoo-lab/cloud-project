@@ -1,5 +1,10 @@
 from botocore.exceptions import ClientError
+import requests
+from dotenv import load_dotenv
+import os
 
+# load .env
+load_dotenv()
 
 class Alarm:
     def __init__(self, client):
@@ -70,13 +75,20 @@ class Alarm:
 
             # 알람 생성 및 구독 활성화 (구독은 이메일로)
             email = input("Enter your email: ")
-            response = self.client.create_topic(Name=name)
-            self.client.subscribe(
-                TopicArn=response['TopicArn'],
-                Protocol='email',
-                Endpoint=email,
-            )
-            print("Successfully create alarm")
+            print("Your email is being verified...")
+
+            validation = self.verify_email(email)
+            if validation=='valid':
+                response = self.client.create_topic(Name=name)
+                self.client.subscribe(
+                    TopicArn=response['TopicArn'],
+                    Protocol='email',
+                    Endpoint=email,
+                )
+                print("Successfully create alarm")
+
+            else:
+                print("This email is not valid.")
 
         except ClientError as err:
             print("Cannot create alarm")
@@ -199,12 +211,18 @@ class Alarm:
                             break
 
                     if flag:
-                        self.client.subscribe(
-                            TopicArn=topics[operation-1],
-                            Protocol='email',
-                            Endpoint=email,
-                        )
-                        print(f"Successfully add email {email} to alarm {topics[operation-1].split(':')[-1]}")
+                        print("Your email is being verified...")
+
+                        validation = self.verify_email(email)
+                        if validation == 'valid':
+                            self.client.subscribe(
+                                TopicArn=topics[operation-1],
+                                Protocol='email',
+                                Endpoint=email,
+                            )
+                            print(f"Successfully add email {email} to alarm {topics[operation-1].split(':')[-1]}")
+                        else:
+                            print("This email is not valid.")
 
                 # 잘못된 번호를 입력한 경우
                 else:
@@ -218,3 +236,22 @@ class Alarm:
 
         except ValueError:
             print("You entered an invalid integer...")
+
+    # 이메일 검증 api
+    def verify_email(self, email):
+        url = "https://zerobounce1.p.rapidapi.com/v2/validate"
+        headers = {
+            'X-RapidAPI-Key':  os.environ.get('X-RapidAPI-Key'),
+            'X-RapidAPI-Host': os.environ.get('X-RapidAPI-HOST')
+        }
+        params = {
+            'api_key': os.environ.get('ZeroBounce-Key'),
+            'email': email
+        }
+
+        try:
+            response = requests.get(url, headers=headers, params=params)
+            return response.json()['status']
+
+        except Exception as err:
+            print(err)
