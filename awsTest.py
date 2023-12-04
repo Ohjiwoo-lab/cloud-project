@@ -140,7 +140,7 @@ if __name__ == '__main__':
 
         # 그동안 수행한 작업 확인하기
         elif operation=='15':
-            event.select_mode()
+            event.event_log_by_count()
 
         # 프로그램 종료
         elif operation=='99':
