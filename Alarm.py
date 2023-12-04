@@ -1,10 +1,7 @@
 from botocore.exceptions import ClientError
-import requests
-from dotenv import load_dotenv
-import os
+from threading import Event
+import time
 
-# load .env
-load_dotenv()
 
 class Alarm:
     def __init__(self, client):
@@ -75,20 +72,29 @@ class Alarm:
 
             # 알람 생성 및 구독 활성화 (구독은 이메일로)
             email = input("Enter your email: ")
-            print("Your email is being verified...")
 
-            validation = self.verify_email(email)
-            if validation=='valid':
-                response = self.client.create_topic(Name=name)
-                self.client.subscribe(
-                    TopicArn=response['TopicArn'],
-                    Protocol='email',
-                    Endpoint=email,
-                )
+            response = self.client.create_topic(Name=name)
+            self.client.subscribe(
+                TopicArn=response['TopicArn'],
+                Protocol='email',
+                Endpoint=email,
+            )
+            print("A confirmation email has been sent. Please complete verification in time.")
+
+            cnt, flag = 20, False
+            for i in range(cnt, -1, -1):
+                flag = self.verify_email(response, i)
+                if flag:
+                    print(" Confirmed.")
+                    break
+
+                time.sleep(1)
+
+            if flag:
                 print("Successfully create alarm")
-
             else:
-                print("This email is not valid.")
+                self.client.delete_topic(TopicArn=response['TopicArn'])
+                print("\nAlarm creation failed because the email was not confirmed.")
 
         except ClientError as err:
             print("Cannot create alarm")
@@ -214,10 +220,10 @@ class Alarm:
                         print("Your email is being verified...")
 
                         validation = self.verify_email(email)
-                        if validation == 'valid':
+                        if validation:
                             self.client.subscribe(
                                 TopicArn=topics[operation-1],
-                                Protocol='email',
+                                 Protocol='email',
                                 Endpoint=email,
                             )
                             print(f"Successfully add email {email} to alarm {topics[operation-1].split(':')[-1]}")
@@ -237,21 +243,14 @@ class Alarm:
         except ValueError:
             print("You entered an invalid integer...")
 
-    # 이메일 검증 api
-    def verify_email(self, email):
-        url = "https://zerobounce1.p.rapidapi.com/v2/validate"
-        headers = {
-            'X-RapidAPI-Key':  os.environ.get('X-RapidAPI-Key'),
-            'X-RapidAPI-Host': os.environ.get('X-RapidAPI-HOST')
-        }
-        params = {
-            'api_key': os.environ.get('ZeroBounce-Key'),
-            'email': email
-        }
+    # 이메일 검증
+    def verify_email(self, response, cnt):
+        print(f"{cnt}...", end="")
+        flag = False
+        endpoints = self.client.list_subscriptions_by_topic(TopicArn=response['TopicArn'])
+        for endpoint in endpoints['Subscriptions']:
+            if endpoint['SubscriptionArn'] != 'PendingConfirmation':
+                flag = True
+                break
 
-        try:
-            response = requests.get(url, headers=headers, params=params)
-            return response.json()['status']
-
-        except Exception as err:
-            print(err)
+        return flag
