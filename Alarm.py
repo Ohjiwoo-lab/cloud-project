@@ -20,10 +20,9 @@ class Alarm:
                 endpoints=self.client.list_subscriptions_by_topic(TopicArn=topic['TopicArn'])
                 print(f"[email] ", end="")
                 for endpoint in endpoints['Subscriptions']:
-                    print(f"{endpoint['Endpoint']} ", end="")
-                    tmp_email.append([endpoint['SubscriptionArn'],endpoint['Endpoint']])
-                    if endpoint['SubscriptionArn']=='PendingConfirmation':
-                        print("(Pending Confirmation) ", end="")
+                    if endpoint['SubscriptionArn'] != 'PendingConfirmation':
+                        print(f"{endpoint['Endpoint']} ", end="")
+                        tmp_email.append([endpoint['SubscriptionArn'], endpoint['Endpoint']])
                 print()
 
                 email_list.append(tmp_email)
@@ -41,6 +40,8 @@ class Alarm:
     # 알람 생성
     def create_alarm(self):
         # 어떤 작업에 대해 알람을 생성할 지 결정
+        topic = ''
+
         print("                                                            ")
         print("            When do you want to send the alarm?             ")
         print("                                                            ")
@@ -74,30 +75,25 @@ class Alarm:
             email = input("Enter your email: ")
 
             response = self.client.create_topic(Name=name)
+            topic = response['TopicArn']
             self.client.subscribe(
-                TopicArn=response['TopicArn'],
+                TopicArn=topic,
                 Protocol='email',
                 Endpoint=email,
             )
             print("A confirmation email has been sent. Please complete verification in time.")
 
-            cnt, flag = 20, False
-            for i in range(cnt, -1, -1):
-                flag = self.verify_email(response, i)
-                if flag:
-                    print(" Confirmed.")
-                    break
-
-                time.sleep(1)
+            flag = self.verify_email(topic)
 
             if flag:
                 print("Successfully create alarm")
             else:
-                self.client.delete_topic(TopicArn=response['TopicArn'])
+                self.client.delete_topic(TopicArn=topic)
                 print("\nAlarm creation failed because the email was not confirmed.")
 
         except ClientError as err:
             print("Cannot create alarm")
+            self.client.delete_topic(TopicArn=topic)
             print(err.response["Error"]["Code"], end=" ")
             print(err.response["Error"]["Message"])
 
@@ -135,25 +131,13 @@ class Alarm:
                     print("You entered an invalid integer...")
                     return
 
-                # 확인되지 않은 이메일이 있는 지 확인
-                flag, email = True, ''
-                for endpoint in endpoints[operation-1]:
-                    if endpoint[0]=='PendingConfirmation':
-                        flag=False
-                        email=endpoint[1]
-                        break
+                # 토픽 삭제
+                self.client.delete_topic(TopicArn=topics[operation - 1])
+                # 해당 토픽을 구독하는 이메일 삭제
+                for endpoint in endpoints[operation - 1]:
+                    self.client.unsubscribe(SubscriptionArn=endpoint[0])
 
-                if flag:
-                    # 토픽 삭제
-                    self.client.delete_topic(TopicArn=topics[operation - 1])
-                    # 해당 토픽을 구독하는 이메일 삭제
-                    for endpoint in endpoints[operation - 1]:
-                        self.client.unsubscribe(SubscriptionArn=endpoint[0])
-
-                    print("Successfully delete alarm")
-
-                else:
-                    print(f"The notification cannot be deleted because there is an unconfirmed email '{email}'.")
+                print("Successfully delete alarm")
 
             except ClientError as err:
                 print("Cannot delete alarm")
@@ -179,11 +163,6 @@ class Alarm:
                 if operation > num or operation <= 0:
                     print("You entered an invalid integer...")
                     return
-
-                for endpoint in endpoints[operation-1]:
-                    if endpoint[0]=='PendingConfirmation':
-                        print(f"Your email '{endpoint[1]}' hasn't been approved yet.")
-                        return
 
                 # 어떤 작업에 대해 이메일을 수정할 지
                 print("                                                 ")
@@ -217,18 +196,18 @@ class Alarm:
                             break
 
                     if flag:
-                        print("Your email is being verified...")
+                        print("A confirmation email has been sent. Please complete verification in time.")
+                        self.client.subscribe(
+                            TopicArn=topics[operation - 1],
+                            Protocol='email',
+                            Endpoint=email,
+                        )
 
-                        validation = self.verify_email(email)
+                        validation = self.verify_email(topics[operation - 1])
                         if validation:
-                            self.client.subscribe(
-                                TopicArn=topics[operation-1],
-                                 Protocol='email',
-                                Endpoint=email,
-                            )
                             print(f"Successfully add email {email} to alarm {topics[operation-1].split(':')[-1]}")
                         else:
-                            print("This email is not valid.")
+                            print("\nYour email has not been confirmed.")
 
                 # 잘못된 번호를 입력한 경우
                 else:
@@ -244,13 +223,24 @@ class Alarm:
             print("You entered an invalid integer...")
 
     # 이메일 검증
-    def verify_email(self, response, cnt):
-        print(f"{cnt}...", end="")
-        flag = False
-        endpoints = self.client.list_subscriptions_by_topic(TopicArn=response['TopicArn'])
-        for endpoint in endpoints['Subscriptions']:
-            if endpoint['SubscriptionArn'] != 'PendingConfirmation':
-                flag = True
-                break
+    def verify_email(self, topicArn):
+        cnt, flag, result = 20, True, False
+        for i in range(cnt, -1, -1):
+            print(f"{i}...", end="", flush=True)
 
-        return flag
+            endpoints = self.client.list_subscriptions_by_topic(TopicArn=topicArn)
+            for endpoint in endpoints['Subscriptions']:
+                if endpoint['SubscriptionArn'] == 'PendingConfirmation':
+                    flag = False
+                    break
+
+            if flag:
+                print(" Confirmed.")
+                result = True
+                break
+            else:
+                flag = True
+
+            time.sleep(1)
+
+        return result
