@@ -1,5 +1,4 @@
 from botocore.exceptions import ClientError
-from threading import Event
 import time
 
 
@@ -120,7 +119,7 @@ class Alarm:
         num = len(topics)
 
         if num==0:
-            print("There are no alarms to modify.")
+            print("There are no alarms to delete.")
             return
 
         try:
