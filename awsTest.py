@@ -19,10 +19,13 @@ if __name__ == '__main__':
     # CloudTrail 로그 기록
     trail = boto3.client('cloudtrail')
 
+    # 사용자 목록
+    iam = boto3.client('iam')
+
     instance = Instance(ec2, client)
     alarm = Alarm(sns)
     condor = Condor(ssm, client)
-    event = Trail(trail)
+    event = Trail(trail, iam)
 
     # 프로그램 실행할 때 마스터는 실행 상태로 유지하기
     response = client.describe_instances(

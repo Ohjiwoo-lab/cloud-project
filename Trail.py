@@ -2,9 +2,11 @@ from botocore.exceptions import ClientError
 
 
 class Trail:
-    def __init__(self, client):
-        self.client = client
+    def __init__(self, trail_client, iam_client):
+        self.trail = trail_client
+        self.iam = iam_client
 
+    # 그동안 수행했던 로그 기록 확인
     def event_log_by_count(self):
         try:
             count = input("Enter the number of events : ")
@@ -17,11 +19,15 @@ class Trail:
                 print("Please enter a value greater than 0.")
                 return
 
-            response = self.client.lookup_events(
+            user = ''
+            for name in self.iam.list_users()['Users']:
+                user = name['UserName']
+
+            response = self.trail.lookup_events(
                 LookupAttributes=[
                     {
                         'AttributeKey': 'Username',
-                        'AttributeValue': 'rak'
+                        'AttributeValue': user
                     }
                 ],
                 MaxResults=count
