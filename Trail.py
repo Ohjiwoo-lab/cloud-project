@@ -9,7 +9,7 @@ class Trail:
     # 그동안 수행했던 로그 기록 확인
     def event_log_by_count(self):
         try:
-            count = input("Enter the number of events : ")
+            count = input("Enter the number of events: ")
             if len(count) == 0:
                 print("You entered an incorrect number.")
                 return

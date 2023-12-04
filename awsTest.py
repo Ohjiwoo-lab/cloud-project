@@ -55,7 +55,7 @@ if __name__ == '__main__':
         print("  9. terminate instance          10. condor status           ")
         print("  11. list alarm                 12. create alarm            ")
         print("  13. delete alarm               14. modify email for alarm  ")
-        print("  15. event history                                          ")
+        print("  15. event history              16. connect to instance     ")
         print("                                 99. quit                    ")
         print("-------------------------------------------------------------")
 
@@ -144,6 +144,10 @@ if __name__ == '__main__':
         # 그동안 수행한 작업 확인하기
         elif operation=='15':
             event.event_log_by_count()
+
+        # 마스터 노드 접속
+        elif operation=='16':
+            condor.console()
 
         # 프로그램 종료
         elif operation=='99':
