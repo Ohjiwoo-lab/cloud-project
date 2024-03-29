@@ -1,10 +1,11 @@
 from botocore.exceptions import ClientError
 import time
+import boto3
 
 
 class Alarm:
-    def __init__(self, client):
-        self.client = client
+    def __init__(self):
+        self.client = boto3.client('sns')
 
     # 알람을 전송할 주제 나열
     def list(self):
@@ -93,23 +94,6 @@ class Alarm:
         except ClientError as err:
             print("Cannot create alarm")
             self.client.delete_topic(TopicArn=topic)
-            print(err.response["Error"]["Code"], end=" ")
-            print(err.response["Error"]["Message"])
-
-    # 특정 작업 시 알람 전송
-    def send(self, action):
-        try:
-            topics = self.client.list_topics()
-            for topic in topics['Topics']:
-                if topic['TopicArn'].split(':')[-1] == action:
-                    self.client.publish(
-                        TopicArn=topic['TopicArn'],
-                        Message=f"당신의 AWS 계정으로 {action} 작업이 이루어졌습니다. 본인의 활동이 맞는지 확인해보세요."
-                    )
-                    break
-
-        except ClientError as err:
-            print("Cannot send the email")
             print(err.response["Error"]["Code"], end=" ")
             print(err.response["Error"]["Message"])
 

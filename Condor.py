@@ -1,11 +1,12 @@
 from botocore.exceptions import ClientError
 import time
+import boto3
 
 
 class Condor:
-    def __init__(self, client, ec2):
-        self.client = client
-        self.ec2_client = ec2
+    def __init__(self):
+        self.client = boto3.client('ssm')
+        self.ec2_client = boto3.client('ec2')
 
     # 마스터 노드 아이디 리턴
     def get_master(self):

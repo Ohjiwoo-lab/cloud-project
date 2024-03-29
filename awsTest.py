@@ -1,4 +1,3 @@
-import boto3
 from Instance import Instance
 from Alarm import Alarm
 from Condor import Condor
@@ -6,28 +5,13 @@ from Trail import Trail
 
 
 if __name__ == '__main__':
-    # EC2
-    ec2 = boto3.resource('ec2')
-    client = boto3.client('ec2')
+    instance = Instance()
+    alarm = Alarm()
+    condor = Condor()
+    event = Trail()
 
-    # SNS를 이용한 알림 기능
-    sns = boto3.client('sns')
-
-    # SSM (System Manager)
-    ssm = boto3.client('ssm')
-
-    # CloudTrail 로그 기록
-    trail = boto3.client('cloudtrail')
-
-    # 사용자 목록
-    iam = boto3.client('iam')
-
-    instance = Instance(ec2, client)
-    alarm = Alarm(sns)
-    condor = Condor(ssm, client)
-    event = Trail(trail, iam)
-
-    # 프로그램 실행할 때 마스터는 실행 상태로 유지하기
+    # 초기 구성하는 것 구현할 예정.
+    '''
     response = client.describe_instances(
         Filters=[
             {
@@ -41,6 +25,7 @@ if __name__ == '__main__':
             if node['State']['Name'] != 'running':
                 print("The master node is stopped. Starting a master node.")
                 ec2.instances.filter(InstanceIds=[node['InstanceId']]).start()
+    '''
 
     while True:
         print("                                                             ")
@@ -76,7 +61,6 @@ if __name__ == '__main__':
                 print("Please enter correct id")
             else:
                 instance.start(ids)
-                alarm.send("start_instance")
 
         # 리전 출력
         elif operation=='4':
@@ -89,7 +73,6 @@ if __name__ == '__main__':
                 print("Please enter correct id")
             else:
                 instance.stop(ids)
-                alarm.send("stop_instance")
 
         # 인스턴스 생성
         elif operation=='6':
@@ -98,7 +81,6 @@ if __name__ == '__main__':
                 print("Please enter correct ami id")
             else:
                 instance.create(ami_id)
-                alarm.send("create_instance")
 
         # 인스턴스 재부팅
         elif operation=='7':
@@ -119,7 +101,6 @@ if __name__ == '__main__':
                 print("Please enter correct id")
             else:
                 instance.terminate(ids)
-                alarm.send("terminate_instance")
 
         # condor status
         elif operation=='10':

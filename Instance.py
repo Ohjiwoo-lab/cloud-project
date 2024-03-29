@@ -1,15 +1,17 @@
 from botocore.exceptions import ClientError
+import boto3
 
 
 class Instance:
-    def __init__(self, ec2, client):
-        self.ec2 = ec2
-        self.client = client
+    def __init__(self):
+        self.ec2_resource = boto3.resource('ec2')
+        self.ec2_client = boto3.client('ec2')
+        self.sns = boto3.client('sns')
 
     # 인스턴스 정보 출력
     def display(self):
         try:
-            response = self.client.describe_instances()
+            response = self.ec2_client.describe_instances()
             if len(response['Reservations']) == 0:
                 print('No instance')
             else:
@@ -33,7 +35,7 @@ class Instance:
         print()
 
         try:
-            response = self.client.describe_instances(
+            response = self.ec2_client.describe_instances(
                 Filters=[
                     {
                         'Name': 'instance-id',
@@ -52,8 +54,9 @@ class Instance:
                         if instance['State']['Name'] == 'running':
                             print(f"Instance {instance['InstanceId']} is already running.")
                         else:
-                            self.ec2.instances.filter(InstanceIds=[instance['InstanceId']]).start()
+                            self.ec2_resource.instances.filter(InstanceIds=[instance['InstanceId']]).start()
                             print(f"Successfully started instance {instance['InstanceId']}")
+                            self.send("start_instance")
 
         # 예외 처리
         except ClientError as err:
@@ -67,7 +70,7 @@ class Instance:
     # 특정 인스턴스 중지
     def stop(self, ids):
         try:
-            response = self.client.describe_instances(
+            response = self.ec2_client.describe_instances(
                 Filters=[
                     {
                         'Name': 'instance-id',
@@ -83,16 +86,17 @@ class Instance:
                 for instances in response['Reservations']:
                     for instance in instances['Instances']:
                         # 마스터 노드인 경우 중지 불가
-                        if instance['KeyName'] == 'master-key':
-                            print("The master node cannot be stopped.")
-                            return
+                        # if instance['KeyName'] == 'master-key':
+                        #     print("The master node cannot be stopped.")
+                        #     return
                         # 이미 인스턴스가 중지 중인 상태인 경우
-                        elif instance['State']['Name'] == 'stopped':
+                        if instance['State']['Name'] == 'stopped':
                             print(f"Instance {instance['InstanceId']} is already stopped.")
                             return
                         else:
-                            self.ec2.instances.filter(InstanceIds=[instance['InstanceId']]).stop()
+                            self.ec2_resource.instances.filter(InstanceIds=[instance['InstanceId']]).stop()
                             print(f"Successfully stop instance {instance['InstanceId']}")
+                            self.send("stop_instance")
 
         # 예외 처리
         except ClientError as err:
@@ -106,7 +110,7 @@ class Instance:
     # 인스턴스 생성
     def create(self, ami_id):
         securityGroup = []
-        for vm in self.ec2.security_groups.all():
+        for vm in self.ec2_resource.security_groups.all():
             if vm.group_name == "launch-wizard-3":
                 securityGroup.append(vm.id)
                 break
@@ -119,8 +123,9 @@ class Instance:
         }
 
         try:
-            instance = self.ec2.create_instances(**params, MinCount=1, MaxCount=1)[0]
+            instance = self.ec2_resource.create_instances(**params, MinCount=1, MaxCount=1)[0]
             print(f"Successfully started EC2 instance {instance.id} based on AMI {ami_id}")
+            self.send("create_instance")
 
         # 예외 처리
         except ClientError as err:
@@ -133,7 +138,7 @@ class Instance:
         print("Listing images....")
         try:
             flag=True
-            for image in self.ec2.images.filter(Filters=[{'Name': 'name', 'Values': ['aws-htcondor-slave']}]):
+            for image in self.ec2_resource.images.filter(Filters=[{'Name': 'name', 'Values': ['aws-htcondor-slave']}]):
                 print(f"[ImageId] {image.id}, [Name] {image.name}, [Owner] {image.owner_id}")
                 flag=False
 
@@ -147,7 +152,7 @@ class Instance:
     # 가용 영역 출력하기
     def get_availability_zone(self):
         try:
-            response = self.client.describe_availability_zones()
+            response = self.ec2_client.describe_availability_zones()
             cnt=0
             for zone in response['AvailabilityZones']:
                 print(f"[id] {zone['ZoneId']}, ", end="")
@@ -165,7 +170,7 @@ class Instance:
     # 리전 출력하기
     def get_region(self):
         try:
-            response = self.client.describe_regions()
+            response = self.ec2_client.describe_regions()
             cnt = 0
             for region in response['Regions']:
                 print(f"[region] {region['RegionName']}, ", end="")
@@ -206,7 +211,7 @@ class Instance:
         print()
 
         try:
-            response = self.client.describe_instances(
+            response = self.ec2_client.describe_instances(
                 Filters=[
                     {
                         'Name': 'instance-id',
@@ -230,8 +235,9 @@ class Instance:
                             print(f"Instance {instance['InstanceId']} is already terminated.")
                             return
                         else:
-                            self.ec2.instances.filter(InstanceIds=[instance['InstanceId']]).terminate()
+                            self.ec2_resource.instances.filter(InstanceIds=[instance['InstanceId']]).terminate()
                             print(f"Successfully terminate instance {instance['InstanceId']}")
+                            self.send("terminate_instance")
 
         # 예외 처리
         except ClientError as err:
@@ -239,5 +245,22 @@ class Instance:
             for id in ids:
                 print(f" {id}", end=" ")
             print()
+            print(err.response["Error"]["Code"], end=" ")
+            print(err.response["Error"]["Message"])
+
+    # 알람 확인 후 알람 전송
+    def send(self, action):
+        try:
+            topics = self.sns.list_topics()
+            for topic in topics['Topics']:
+                if topic['TopicArn'].split(':')[-1] == action:
+                    self.sns.publish(
+                        TopicArn=topic['TopicArn'],
+                        Message=f"당신의 AWS 계정으로 {action} 작업이 이루어졌습니다. 본인의 활동이 맞는지 확인해보세요."
+                    )
+                    break
+
+        except ClientError as err:
+            print("Cannot send the email")
             print(err.response["Error"]["Code"], end=" ")
             print(err.response["Error"]["Message"])

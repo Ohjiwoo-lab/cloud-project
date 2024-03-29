@@ -1,10 +1,11 @@
 from botocore.exceptions import ClientError
+import boto3
 
 
 class Trail:
-    def __init__(self, trail_client, iam_client):
-        self.trail = trail_client
-        self.iam = iam_client
+    def __init__(self):
+        self.trail = boto3.client('cloudtrail')
+        self.iam = boto3.client('iam')
 
     # 그동안 수행했던 로그 기록 확인
     def event_log_by_count(self):
