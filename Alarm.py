@@ -1,11 +1,13 @@
 from botocore.exceptions import ClientError
 import time
 import boto3
+import json
 
 
 class Alarm:
     def __init__(self):
         self.client = boto3.client('sns')
+        self.event = boto3.client('events')
 
     # 알람을 전송할 주제 나열
     def list(self):
@@ -52,13 +54,13 @@ class Alarm:
         name = ''
         operation = input("Enter an integer: ")
         if operation=='1':
-            name = 'start_instance'
+            name = 'StartInstances'
         elif operation=='2':
-            name = 'stop_instance'
+            name = 'StopInstances'
         elif operation=='3':
-            name = 'create_instance'
+            name = 'RunInstances'
         elif operation=='4':
-            name = 'terminate_instance'
+            name = 'TerminateInstances'
         else:
             print("You entered an invalid integer.")
             return
@@ -86,6 +88,33 @@ class Alarm:
             flag = self.verify_email(topic)
 
             if flag:
+                event_pattern = '{\n' \
+                + '  "source": ["aws.ec2"],\n' \
+                + '  "detail-type": ["AWS API Call via CloudTrail"],\n' \
+                + '  "detail": {\n' \
+                + '    "eventSource": ["ec2.amazonaws.com"],\n' \
+                + '    "eventName": ["' + name + '"]\n' \
+                + '  }\n' \
+                + '}'
+
+                # EventBridge 규칙 생성
+                self.event.put_rule(
+                    Name = name,
+                    EventPattern=event_pattern,
+                    State='ENABLED'
+                )
+
+                # 대상(sns) 연결
+                self.event.put_targets(
+                    Rule=name,
+                    Targets=[
+                        {
+                            "Id": name + "_SNS",
+                            "Arn": topic,
+                            "Input": "\"귀하의 계정으로 " + name + " 작업이 이루어졌습니다. 본인이 수행한 활동이 아니라면 계정의 보안을 체크해보세요.\""
+                        }]
+                )
+
                 print("Successfully create alarm")
             else:
                 self.client.delete_topic(TopicArn=topic)
