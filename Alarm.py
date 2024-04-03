@@ -85,73 +85,90 @@ class Alarm:
             )
             print("A confirmation email has been sent. Please complete verification in time.")
 
-            flag = self.verify_email(topic)
+            flag, subscriptionArn = self.verify_email(topic)
+            
+            try:
+                if flag:
+                    event_pattern = '{\n' \
+                    + '  "source": ["aws.ec2"],\n' \
+                    + '  "detail-type": ["AWS API Call via CloudTrail"],\n' \
+                    + '  "detail": {\n' \
+                    + '    "eventSource": ["ec2.amazonaws.com"],\n' \
+                    + '    "eventName": ["' + name + '"]\n' \
+                    + '  }\n' \
+                    + '}'
 
-            if flag:
-                event_pattern = '{\n' \
-                + '  "source": ["aws.ec2"],\n' \
-                + '  "detail-type": ["AWS API Call via CloudTrail"],\n' \
-                + '  "detail": {\n' \
-                + '    "eventSource": ["ec2.amazonaws.com"],\n' \
-                + '    "eventName": ["' + name + '"]\n' \
-                + '  }\n' \
-                + '}'
+                    # EventBridge 규칙 생성
+                    self.event.put_rule(
+                        Name = name,
+                        EventPattern=event_pattern,
+                        State='ENABLED'
+                    )
 
-                # EventBridge 규칙 생성
-                self.event.put_rule(
-                    Name = name,
-                    EventPattern=event_pattern,
-                    State='ENABLED'
-                )
+                    try:
+                        # EventBridge가 SNS에 메시지를 게시할 권한 부여 (리소스 기반 정책)
+                        attribute = self.client.get_topic_attributes(  # 기존 권한 가져오기
+                            TopicArn=topic
+                        )
 
-                # EventBridge가 SNS에 메시지를 게시할 권한 부여 (리소스 기반 정책)
-                attribute = self.client.get_topic_attributes(  # 기존 권한 가져오기
-                    TopicArn=topic
-                )
+                        json_policy = json.loads(attribute['Attributes']['Policy'])   # 문자열을 json으로 변환
+                        
+                        # 추가할 권한 정의
+                        policy = {
+                            "Sid": "AWSEvents_" + name + "_id",
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": "events.amazonaws.com"
+                            },
+                            "Action": "sns:Publish",
+                            "Resource": topic
+                        }
+                        json_policy['Statement'].append(policy)   # 권한 추가
 
-                json_policy = json.loads(attribute['Attributes']['Policy'])   # 문자열을 json으로 변환
-                
-                # 추가할 권한 정의
-                policy = {
-                    "Sid": "AWSEvents_" + name + "_id",
-                    "Effect": "Allow",
-                    "Principal": {
-                        "Service": "events.amazonaws.com"
-                    },
-                    "Action": "sns:Publish",
-                    "Resource": topic
-                }
-                json_policy['Statement'].append(policy)   # 권한 추가
+                        # 새로운 권한 생성 (json을 문자열로 바꾸기 위해 json.dumps 사용)
+                        new_policy = '{"Version":"' + json_policy['Version'] + '",' + '"Id":"' + json_policy['Id'] + '",' + '"Statement":' + json.dumps(json_policy['Statement']) + '}'
 
-                # 새로운 권한 생성 (json을 문자열로 바꾸기 위해 json.dumps 사용)
-                new_policy = '{"Version":"' + json_policy['Version'] + '",' + '"Id":"' + json_policy['Id'] + '",' + '"Statement":' + json.dumps(json_policy['Statement']) + '}'
+                        # 속성 업데이트
+                        response = self.client.set_topic_attributes(
+                            TopicArn = topic,
+                            AttributeName = 'Policy',
+                            AttributeValue = new_policy
+                        )
 
-                # 속성 업데이트
-                response = self.client.set_topic_attributes(
-                    TopicArn = topic,
-                    AttributeName = 'Policy',
-                    AttributeValue = new_policy
-                )
+                        # 대상(sns) 연결
+                        self.event.put_targets(
+                            Rule=name,
+                            Targets=[
+                                {
+                                    "Id": name + "_SNS",
+                                    "Arn": topic,
+                                    "Input": json.dumps("귀하의 계정으로 " + name + " 작업이 이루어졌습니다. 본인이 수행한 활동이 아니라면 계정의 보안을 체크해보세요.", ensure_ascii = False)
+                                }]
+                        )
 
-                # 대상(sns) 연결
-                self.event.put_targets(
-                    Rule=name,
-                    Targets=[
-                        {
-                            "Id": name + "_SNS",
-                            "Arn": topic,
-                            "Input": json.dumps("귀하의 계정으로 " + name + " 작업이 이루어졌습니다. 본인이 수행한 활동이 아니라면 계정의 보안을 체크해보세요.", ensure_ascii = False)
-                        }]
-                )
+                        print("Successfully create alarm")
+                    
+                    except ClientError as err:
+                        print("Cannot create alarm")
+                        print(err.response["Error"]["Code"], end=" ")
+                        print(err.response["Error"]["Message"])
+                        self.client.unsubscribe(SubscriptionArn=subscriptionArn)
+                        self.client.delete_topic(TopicArn=topic)
+                        self.event.delete_rule(Name=name)
+                        
+                else:
+                    self.client.delete_topic(TopicArn=topic)
+                    print("\nAlarm creation failed because the email was not confirmed.")
 
-                print("Successfully create alarm")
-            else:
+            except ClientError as err:
+                print("Cannot create alarm")
+                print(err.response["Error"]["Code"], end=" ")
+                print(err.response["Error"]["Message"])
+                self.client.unsubscribe(SubscriptionArn=subscriptionArn)
                 self.client.delete_topic(TopicArn=topic)
-                print("\nAlarm creation failed because the email was not confirmed.")
-
+            
         except ClientError as err:
             print("Cannot create alarm")
-            self.client.delete_topic(TopicArn=topic)
             print(err.response["Error"]["Code"], end=" ")
             print(err.response["Error"]["Message"])
 
@@ -171,12 +188,27 @@ class Alarm:
                 if operation > num or operation <= 0:
                     print("You entered an invalid integer...")
                     return
+                
+                rule_name = topics[operation - 1].split(':')[-1]
 
-                # 토픽 삭제
-                self.client.delete_topic(TopicArn=topics[operation - 1])
+                # EventBridge 규칙으로부터 대상 삭제
+                target = self.event.list_targets_by_rule(Rule=rule_name)
+                self.event.remove_targets(
+                    Rule = rule_name,
+                    Ids=[
+                        target['Targets'][0]['Id']
+                    ]
+                )
+                
+                # 규칙 삭제
+                self.event.delete_rule(Name=rule_name)
+
                 # 해당 토픽을 구독하는 이메일 삭제
                 for endpoint in endpoints[operation - 1]:
                     self.client.unsubscribe(SubscriptionArn=endpoint[0])
+
+                # 토픽 삭제
+                self.client.delete_topic(TopicArn=topics[operation - 1])
 
                 print("Successfully delete alarm")
 
@@ -284,4 +316,4 @@ class Alarm:
 
             time.sleep(1)
 
-        return result
+        return result, endpoint['SubscriptionArn']
