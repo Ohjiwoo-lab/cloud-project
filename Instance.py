@@ -56,7 +56,6 @@ class Instance:
                         else:
                             self.ec2_resource.instances.filter(InstanceIds=[instance['InstanceId']]).start()
                             print(f"Successfully started instance {instance['InstanceId']}")
-                            self.send("start_instance")
 
         # 예외 처리
         except ClientError as err:
@@ -96,7 +95,6 @@ class Instance:
                         else:
                             self.ec2_resource.instances.filter(InstanceIds=[instance['InstanceId']]).stop()
                             print(f"Successfully stop instance {instance['InstanceId']}")
-                            self.send("stop_instance")
 
         # 예외 처리
         except ClientError as err:
@@ -125,7 +123,6 @@ class Instance:
         try:
             instance = self.ec2_resource.create_instances(**params, MinCount=1, MaxCount=1)[0]
             print(f"Successfully started EC2 instance {instance.id} based on AMI {ami_id}")
-            self.send("create_instance")
 
         # 예외 처리
         except ClientError as err:
@@ -237,7 +234,6 @@ class Instance:
                         else:
                             self.ec2_resource.instances.filter(InstanceIds=[instance['InstanceId']]).terminate()
                             print(f"Successfully terminate instance {instance['InstanceId']}")
-                            self.send("terminate_instance")
 
         # 예외 처리
         except ClientError as err:
@@ -245,22 +241,5 @@ class Instance:
             for id in ids:
                 print(f" {id}", end=" ")
             print()
-            print(err.response["Error"]["Code"], end=" ")
-            print(err.response["Error"]["Message"])
-
-    # 알람 확인 후 알람 전송
-    def send(self, action):
-        try:
-            topics = self.sns.list_topics()
-            for topic in topics['Topics']:
-                if topic['TopicArn'].split(':')[-1] == action:
-                    self.sns.publish(
-                        TopicArn=topic['TopicArn'],
-                        Message=f"당신의 AWS 계정으로 {action} 작업이 이루어졌습니다. 본인의 활동이 맞는지 확인해보세요."
-                    )
-                    break
-
-        except ClientError as err:
-            print("Cannot send the email")
             print(err.response["Error"]["Code"], end=" ")
             print(err.response["Error"]["Message"])
