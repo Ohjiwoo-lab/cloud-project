@@ -8,6 +8,7 @@ class Alarm:
     def __init__(self):
         self.client = boto3.client('sns')
         self.event = boto3.client('events')
+        self.trail = boto3.client("cloudtrail")
 
     # 알람을 전송할 주제 나열
     def list(self):
@@ -72,6 +73,12 @@ class Alarm:
                 if topic['TopicArn'].split(':')[-1]==name:
                     print("Already exist alarm")
                     return
+                
+            # 만약 topics가 비어있다면 로깅 활성화
+            if len(topics['Topics']) == 0:
+                self.trail.start_logging(
+                    Name='ec2-management-event'
+                )
 
             # 알람 생성 및 구독 활성화 (구독은 이메일로)
             email = input("Enter your email: ")
@@ -171,6 +178,7 @@ class Alarm:
             print("Cannot create alarm")
             print(err.response["Error"]["Code"], end=" ")
             print(err.response["Error"]["Message"])
+            self.client.delete_topic(TopicArn=topic)
 
     # 알람 삭제
     def delete(self):
@@ -209,6 +217,12 @@ class Alarm:
 
                 # 토픽 삭제
                 self.client.delete_topic(TopicArn=topics[operation - 1])
+
+                # num이 1이었다면 로깅 중지(마지막 남은 알람이 삭제된 것이므로 로깅이 더이상 불필요)
+                if num == 1:
+                    self.trail.stop_logging(
+                        Name='ec2-management-event'
+                    )
 
                 print("Successfully delete alarm")
 
