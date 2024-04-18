@@ -2,3 +2,6 @@
 __pycache__/
 .dist/
 .cloud/
+.terraform/
+.terraform.lock.hcl
+terraform.tfstate*
