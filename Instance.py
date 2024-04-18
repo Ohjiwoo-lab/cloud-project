@@ -8,6 +8,34 @@ class Instance:
         self.ec2_client = boto3.client('ec2')
         self.sns = boto3.client('sns')
 
+    def get_master(self):
+        try:
+            # 마스터 노드를 필터링
+            response = self.ec2_client.describe_instances(
+                Filters=[
+                    {
+                        'Name': 'tag:Name',
+                        'Values': ['master']
+                    },
+                    {
+                        'Name': 'instance-state-name',
+                        'Values': ['running']
+                    }
+                ]
+            )
+
+            master_id = ''
+            for instances in response['Reservations']:
+                for instance in instances['Instances']:
+                    master_id = instance['InstanceId']
+
+            return master_id
+
+        except ClientError as err:
+            print("Unable to get master instance information.")
+            print(err.response["Error"]["Code"], end=" ")
+            print(err.response["Error"]["Message"])
+
     # 인스턴스 정보 출력
     def display(self):
         try:
@@ -17,6 +45,7 @@ class Instance:
             else:
                 for instances in response['Reservations']:
                     for instance in instances['Instances']:
+                        print(f"[name] {instance['Tags'][0]['Value']}, ", end="")
                         print(f"[id] {instance['InstanceId']}, ", end="")
                         print(f"[AMI] {instance['ImageId']}, ", end="")
                         print(f"[type] {instance['InstanceType']}, ", end="")
@@ -85,9 +114,9 @@ class Instance:
                 for instances in response['Reservations']:
                     for instance in instances['Instances']:
                         # 마스터 노드인 경우 중지 불가
-                        # if instance['KeyName'] == 'master-key':
-                        #     print("The master node cannot be stopped.")
-                        #     return
+                        if instance['InstanceId'] == self.get_master():
+                            print("The master node cannot be stopped.")
+                            return
                         # 이미 인스턴스가 중지 중인 상태인 경우
                         if instance['State']['Name'] == 'stopped':
                             print(f"Instance {instance['InstanceId']} is already stopped.")
@@ -224,7 +253,7 @@ class Instance:
                 for instances in response['Reservations']:
                     for instance in instances['Instances']:
                         # 마스터 노드인 경우 종료 불가
-                        if instance['KeyName'] == 'master-key':
+                        if instance['InstanceId'] == self.get_master():
                             print("The master node cannot be terminated.")
                             return
                         # 이미 인스턴스가 종료 중인 상태인 경우

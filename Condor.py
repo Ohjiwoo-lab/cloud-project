@@ -17,6 +17,10 @@ class Condor:
                     {
                         'Name': 'tag:Name',
                         'Values': ['master']
+                    },
+                    {
+                        'Name': 'instance-state-name',
+                        'Values': ['running']
                     }
                 ]
             )
