@@ -5,3 +5,5 @@ __pycache__/
 .terraform/
 .terraform.lock.hcl
 terraform.tfstate*
+key/
+setup/inventory
