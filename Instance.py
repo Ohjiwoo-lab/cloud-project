@@ -45,6 +45,8 @@ class Instance:
             else:
                 for instances in response['Reservations']:
                     for instance in instances['Instances']:
+                        if instance['State']['Name']=='terminated':
+                            continue
                         print(f"[name] {instance['Tags'][0]['Value']}, ", end="")
                         print(f"[id] {instance['InstanceId']}, ", end="")
                         print(f"[AMI] {instance['ImageId']}, ", end="")
@@ -145,8 +147,19 @@ class Instance:
         params = {
             "ImageId": ami_id,
             "InstanceType": "t2.micro",
-            "KeyName": "slave-key",
-            "SecurityGroupIds": securityGroup
+            "KeyName": "test",
+            "SecurityGroupIds": securityGroup,
+            "TagSpecifications": [
+                {
+                    "ResourceType": "instance",
+                    "Tags": [
+                        {
+                            'Key': 'Name',
+                            'Value': 'slave'
+                        },
+                    ]
+                }
+            ]
         }
 
         try:
@@ -164,7 +177,7 @@ class Instance:
         print("Listing images....")
         try:
             flag=True
-            for image in self.ec2_resource.images.filter(Filters=[{'Name': 'name', 'Values': ['aws-htcondor-slave']}]):
+            for image in self.ec2_resource.images.filter(Filters=[{'Name': 'name', 'Values': ['slave-image']}]):
                 print(f"[ImageId] {image.id}, [Name] {image.name}, [Owner] {image.owner_id}")
                 flag=False
 
