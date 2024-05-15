@@ -140,14 +140,14 @@ class Instance:
     def create(self, ami_id):
         securityGroup = []
         for vm in self.ec2_resource.security_groups.all():
-            if vm.group_name == "launch-wizard-3":
+            if vm.group_name == "allow_ssh":
                 securityGroup.append(vm.id)
                 break
 
         params = {
             "ImageId": ami_id,
             "InstanceType": "t2.micro",
-            "KeyName": "test",
+            "KeyName": "ansible_keypair",
             "SecurityGroupIds": securityGroup,
             "TagSpecifications": [
                 {

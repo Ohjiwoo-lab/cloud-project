@@ -35,9 +35,9 @@ resource "aws_vpc_security_group_ingress_rule" "allow_ssh_ipv4" {
 resource "aws_vpc_security_group_ingress_rule" "allow_self_security_group" {
   security_group_id = aws_security_group.allow_ssh.id
   referenced_security_group_id = aws_security_group.allow_ssh.id
-  from_port         = 0
+  from_port         = -1
   ip_protocol       = -1
-  to_port           = 0
+  to_port           = -1
 }
 
 # Add outbound rule
