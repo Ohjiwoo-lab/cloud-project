@@ -231,7 +231,7 @@ class Instance:
         print()
 
         try:
-            self.client.reboot_instances(InstanceIds=ids)
+            self.ec2_client.reboot_instances(InstanceIds=ids)
             print(f"Successfully rebooted instance", end="")
             for id in ids:
                 print(f" {id}", end=" ")

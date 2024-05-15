@@ -67,7 +67,23 @@ resource "null_resource" "connet_and_configuration" {
   provisioner "remote-exec" {
     inline = [
         "sudo yum update",
-        "sudo yum install -y python",
+        "sudo yum install -y python3"
     ]
+  }
+
+  provisioner "local-exec" {
+    command = <<EOF
+      echo "[demo]" > inventory
+      echo "${aws_instance.master.public_ip} ansible_ssh_user=ec2-user ansible_ssh_private_key_file=./key/ansible_keypair" >> inventory
+      echo "[demo:vars]" >> inventory
+      echo "hostname=${aws_instance.master.private_dns}" >> inventory
+    EOF
+  }
+
+  provisioner "local-exec" {
+    command = <<EOF
+      ANSIBLE_HOST_KEY_CHECKING=False \
+      ansible-playbook -i inventory playbook.yml
+    EOF
   }
 }

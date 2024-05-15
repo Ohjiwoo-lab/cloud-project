@@ -1,0 +1,37 @@
+---
+- name: HTCondor Installation
+  hosts: demo
+  become: yes
+  become_user: root
+
+  tasks:
+    - name: Install wget package
+      yum: 
+        name=wget
+        state=present
+    
+    - name: Download RPM-GPG-KEY
+      get_url:
+        url: https://research.cs.wisc.edu/htcondor/yum/RPM-GPG-KEY-HTCondor
+        dest: /root/RPM-GPG-KEY-HTCondor
+
+    - name: Get Repo
+      get_url:
+        url: https://research.cs.wisc.edu/htcondor/yum/repo.d/htcondor-stable-rhel7.repo
+        dest: /etc/yum.repos.d/htcondor-stable-rhel7.repo
+
+    - name: Install condor
+      yum:
+        name=condor
+        state=present
+    
+    - name: Creating a Configuration file
+      copy:
+        dest: /etc/condor/config.d/condor_config.local
+        content: |
+          ALLOW_WRITE = *
+          CONDOR_HOST = {{hostname}}
+          DAEMON_LIST = MASTER, SCHEDD, STARTD, COLLECTOR, NEGOTIATOR
+    
+    - name: Enabling HTCondor
+      service: name=condor state=started enabled=yes
