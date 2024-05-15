@@ -32,6 +32,14 @@ resource "aws_vpc_security_group_ingress_rule" "allow_ssh_ipv4" {
   to_port           = 22
 }
 
+resource "aws_vpc_security_group_ingress_rule" "allow_self_security_group" {
+  security_group_id = aws_security_group.allow_ssh.id
+  referenced_security_group_id = aws_security_group.allow_ssh.id
+  from_port         = 0
+  ip_protocol       = -1
+  to_port           = 0
+}
+
 # Add outbound rule
 resource "aws_vpc_security_group_egress_rule" "allow_all_traffic_ipv4" {
   security_group_id = aws_security_group.allow_ssh.id
@@ -51,8 +59,20 @@ resource "aws_instance" "master" {
   }
 }
 
+# Create slave instance
+resource "aws_instance" "slave" {
+  ami           = data.aws_ami.amazon-linux-2.id
+  instance_type = "t2.micro"
+  key_name      = aws_key_pair.make_keypair.key_name
+  vpc_security_group_ids = [aws_security_group.allow_ssh.id]
+
+  tags = {
+    Name = "slave"
+  }
+}
+
 # SSH 원격 접속과 Ansible 설정 (provisioner)
-resource "null_resource" "connet_and_configuration" {
+resource "null_resource" "master_connet_and_configuration" {
   depends_on = [aws_instance.master]
 
   connection {
@@ -70,12 +90,47 @@ resource "null_resource" "connet_and_configuration" {
         "sudo yum install -y python3"
     ]
   }
+}
+
+resource "null_resource" "slave_connet_and_configuration" {
+  depends_on = [aws_instance.slave]
+
+  connection {
+    user = "ec2-user"
+    type = "ssh"
+    host = aws_instance.slave.public_ip
+
+    private_key = "${file("./key/ansible_keypair")}"
+    timeout     = "1m"
+  }
+  
+  provisioner "remote-exec" {
+    inline = [
+        "sudo yum update",
+        "sudo yum install -y python3"
+    ]
+  }
+}
+
+resource "null_resource" "ansible_playbook" {
+  depends_on = [aws_instance.master, aws_instance.slave]
 
   provisioner "local-exec" {
     command = <<EOF
       echo "[demo]" > inventory
       echo "${aws_instance.master.public_ip} ansible_ssh_user=ec2-user ansible_ssh_private_key_file=./key/ansible_keypair" >> inventory
-      echo "[demo:vars]" >> inventory
+      echo "${aws_instance.slave.public_ip} ansible_ssh_user=ec2-user ansible_ssh_private_key_file=./key/ansible_keypair" >> inventory
+      
+      echo "[master]" >> inventory
+      echo "${aws_instance.master.public_ip} ansible_ssh_user=ec2-user ansible_ssh_private_key_file=./key/ansible_keypair" >> inventory
+
+      echo "[slave]" >> inventory
+      echo "${aws_instance.slave.public_ip} ansible_ssh_user=ec2-user ansible_ssh_private_key_file=./key/ansible_keypair" >> inventory
+
+      echo "[master:vars]" >> inventory
+      echo "hostname=${aws_instance.master.private_dns}" >> inventory
+
+      echo "[slave:vars]" >> inventory
       echo "hostname=${aws_instance.master.private_dns}" >> inventory
     EOF
   }

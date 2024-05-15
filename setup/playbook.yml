@@ -24,7 +24,13 @@
       yum:
         name=condor
         state=present
-    
+
+- name: Master Node Setup
+  hosts: master
+  become: yes
+  become_user: root
+
+  tasks:
     - name: Creating a Configuration file
       copy:
         dest: /etc/condor/config.d/condor_config.local
@@ -32,6 +38,23 @@
           ALLOW_WRITE = *
           CONDOR_HOST = {{hostname}}
           DAEMON_LIST = MASTER, SCHEDD, STARTD, COLLECTOR, NEGOTIATOR
+    
+    - name: Enabling HTCondor
+      service: name=condor state=started enabled=yes
+
+- name: Slave Node Setup
+  hosts: slave
+  become: yes
+  become_user: root
+
+  tasks:
+    - name: Creating a Configuration file
+      copy:
+        dest: /etc/condor/config.d/condor_config.local
+        content: |
+          ALLOW_WRITE = *
+          CONDOR_HOST = {{hostname}}
+          DAEMON_LIST = MASTER, STARTD
     
     - name: Enabling HTCondor
       service: name=condor state=started enabled=yes
