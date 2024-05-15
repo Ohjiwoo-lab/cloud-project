@@ -47,12 +47,18 @@ resource "aws_vpc_security_group_egress_rule" "allow_all_traffic_ipv4" {
   ip_protocol       = "-1"
 }
 
+resource "aws_iam_instance_profile" "ssm_profile" {
+  name = "ssm_profile"
+  role = aws_iam_role.instance_profile.name
+}
+
 # Create master instance
 resource "aws_instance" "master" {
   ami           = data.aws_ami.amazon-linux-2.id
   instance_type = "t2.micro"
   key_name      = aws_key_pair.make_keypair.key_name
   vpc_security_group_ids = [aws_security_group.allow_ssh.id]
+  iam_instance_profile   = aws_iam_instance_profile.ssm_profile.name
 
   tags = {
     Name = "master"
