@@ -77,7 +77,7 @@ class Alarm:
             # 만약 topics가 비어있다면 로깅 활성화
             if len(topics['Topics']) == 0:
                 self.trail.start_logging(
-                    Name='ec2-management-event'
+                    Name='management_events'
                 )
 
             # 알람 생성 및 구독 활성화 (구독은 이메일로)
